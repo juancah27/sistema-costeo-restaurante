@@ -1,0 +1,44 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "9sW6_aVp0t9ZMucnYy-28"
+uri = "file://artifacts/restaurant-app/static/images/lomo_saltado.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "h-te5JHqrDdIISxcV9Lba"
+uri = "file://artifacts/restaurant-app/static/images/aji_de_gallina.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "uIaKZDL_OtMFrds-GulSU"
+uri = "file://artifacts/restaurant-app/static/images/ceviche_clasico.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "puDDVmvEPd0YjJgP_SbOB"
+uri = "file://artifacts/restaurant-app/static/images/arroz_con_leche.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "vKzoFwLNXblPq2wCcFLox"
+uri = "file://artifacts/restaurant-app/static/images/pollo_brasa.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "IZhQzXYPeIv163hxSE7vU"
+uri = "file://artifacts/restaurant-app/static/images/causa_limena.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "ny87oOJPbz2baxNxVHhrE"
+uri = "file://artifacts/restaurant-app/static/images/tacu_tacu.png"
+type = "image"
+title = "generated_image"

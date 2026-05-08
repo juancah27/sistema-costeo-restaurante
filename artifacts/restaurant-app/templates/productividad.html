@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Productividad / MOD{% endblock %}
+{% block header_title %}Productividad y Mano de Obra Directa{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Productividad / MOD</div>
+    <div class="page-sub">Parámetros de producción y cálculo de costo por minuto</div>
+  </div>
+</div>
+
+<div class="stats-grid mb-24">
+  <div class="stat-card">
+    <div class="stat-label">Planilla Total</div>
+    <div class="stat-value">S/ {{ "%.2f"|format(planilla_total) }}</div>
+    <div class="stat-sub">base de cálculo MOD</div>
+  </div>
+</div>
+
+{% if planilla_total == 0 %}
+<div class="alert alert-warning">No hay empleados registrados. Agrega personal en la sección Empleados.</div>
+{% endif %}
+
+<form method="POST" action="{{ url_for('productividad_guardar') }}">
+<div class="card mb-24">
+  <div class="card-header">
+    <span class="card-title">Parámetros por Plato</span>
+    <button type="submit" class="btn btn-primary btn-sm">Guardar Todo</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Plato</th>
+          <th class="td-right">Min/Plato</th>
+          <th class="td-right">Días/Mes</th>
+          <th class="td-right">Horas/Día</th>
+          <th class="td-right">Productividad %</th>
+          <th class="td-right">T. Efectivo (min)</th>
+          <th class="td-right">Costo/Min</th>
+          <th class="td-right">MOD (S/)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in mod_data %}
+        {% set pr = item['prod'] %}
+        <tr>
+          <td class="td-bold">{{ item['plato']['nombre'] }}</td>
+          <td class="td-right">
+            <input type="number" name="minutos_{{ item['plato']['id'] }}"
+                   value="{{ pr['minutos_por_plato'] if pr else 20 }}"
+                   step="0.5" min="0.5" style="width:70px;text-align:right">
+          </td>
+          <td class="td-right">
+            <input type="number" name="dias_{{ item['plato']['id'] }}"
+                   value="{{ pr['dias_laborables'] if pr else 26 }}"
+                   min="1" max="31" style="width:60px;text-align:right">
+          </td>
+          <td class="td-right">
+            <input type="number" name="horas_{{ item['plato']['id'] }}"
+                   value="{{ pr['horas_por_dia'] if pr else 10 }}"
+                   step="0.5" min="1" max="24" style="width:65px;text-align:right">
+          </td>
+          <td class="td-right">
+            <input type="number" name="productividad_{{ item['plato']['id'] }}"
+                   value="{{ pr['productividad'] if pr else 85 }}"
+                   min="1" max="100" style="width:65px;text-align:right">
+          </td>
+          <td class="td-right td-mono">
+            {% if pr %}
+              {{ (pr['dias_laborables'] * pr['horas_por_dia'] * 60 * pr['productividad'] / 100)|round(0)|int }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="td-right td-mono font-mono">
+            {% if item['costo_min'] > 0 %}
+              <strong>S/ {{ "%.4f"|format(item['costo_min']) }}</strong>
+            {% else %}—{% endif %}
+          </td>
+          <td class="td-right td-mono td-bold text-accent">
+            {% if item['mod'] > 0 %}S/ {{ "%.4f"|format(item['mod']) }}{% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+</form>
+
+<div class="card">
+  <div class="card-header"><span class="card-title">Detalle de MOD por Plato</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Plato</th>
+          <th class="td-right">Min/Plato</th>
+          <th class="td-right">Costo/Min (S/)</th>
+          <th class="td-right">MOD (S/)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in mod_data %}
+        <tr>
+          <td>{{ item['plato']['nombre'] }}</td>
+          <td class="td-right td-mono">{{ item['prod']['minutos_por_plato'] if item['prod'] else '—' }}</td>
+          <td class="td-right td-mono">
+            {% if item['costo_min'] > 0 %}S/ {{ "%.4f"|format(item['costo_min']) }}{% else %}—{% endif %}
+          </td>
+          <td class="td-right td-mono td-bold">
+            {% if item['mod'] > 0 %}S/ {{ "%.4f"|format(item['mod']) }}{% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

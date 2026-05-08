@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Recetas{% endblock %}
+{% block header_title %}Recetas por Plato{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Recetas</div>
+    <div class="page-sub">Materia prima por plato — costo calculado con conversiones</div>
+  </div>
+</div>
+
+<!-- Add ingredient to recipe -->
+<div class="card mb-24">
+  <div class="card-header"><span class="card-title">Agregar Ingrediente a Receta</span></div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('receta_nuevo') }}">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Plato</label>
+          <select name="plato_id" required>
+            {% for p in platos %}<option value="{{ p['id'] }}">{{ p['nombre'] }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Ingrediente</label>
+          <select name="ingrediente_id" required>
+            {% for i in ingredientes %}<option value="{{ i['id'] }}">{{ i['nombre'] }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cantidad</label>
+          <input type="number" name="cantidad_uso" step="0.1" min="0" required placeholder="150">
+        </div>
+        <div class="form-group">
+          <label>Unidad uso</label>
+          <select name="unidad_uso">
+            <option value="g">g</option>
+            <option value="ml">ml</option>
+            <option value="unidad">unidad</option>
+          </select>
+        </div>
+        <div class="form-group" style="align-self:end">
+          <button type="submit" class="btn btn-primary">Agregar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Recipes per plate -->
+{% for p in platos %}
+{% set data = recetas_por_plato.get(p['id'], {'items': [], 'total': 0}) %}
+<div class="card mb-24">
+  <div class="card-header">
+    <span class="card-title">{{ p['nombre'] }}</span>
+    <span class="badge badge-success">MP Total: S/ {{ "%.3f"|format(data['total']) }}</span>
+  </div>
+  {% if data['items'] %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Ingrediente</th>
+          <th class="td-right">Cant. usada</th>
+          <th>U. uso</th>
+          <th class="td-right">C. de compra</th>
+          <th>U. compra</th>
+          <th class="td-right">Costo total</th>
+          <th class="td-center">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in data['items'] %}
+        <tr>
+          <td class="td-bold">{{ item['nombre'] }}</td>
+          <td class="td-right td-mono">{{ item['cantidad_uso'] }}</td>
+          <td class="text-muted">{{ item['unidad_uso'] }}</td>
+          <td class="td-right td-mono">S/ {{ "%.2f"|format(item['costo_compra']) }}</td>
+          <td class="text-muted">{{ item['unidad_compra'] }}</td>
+          <td class="td-right td-mono td-bold">S/ {{ "%.3f"|format(item['costo_total']) }}</td>
+          <td class="td-center">
+            <button class="btn btn-ghost btn-sm" data-edit-toggle="rec-{{ item['id'] }}">Editar</button>
+            <form method="POST" action="{{ url_for('receta_eliminar', rid=item['id']) }}"
+                  style="display:inline" data-confirm="¿Quitar este ingrediente de la receta?">
+              <button type="submit" class="btn btn-danger btn-sm">Quitar</button>
+            </form>
+          </td>
+        </tr>
+        <tr class="edit-form-row" id="edit-rec-{{ item['id'] }}">
+          <td colspan="7">
+            <form method="POST" action="{{ url_for('receta_editar', rid=item['id']) }}">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Cantidad</label>
+                  <input type="number" name="cantidad_uso" step="0.1" value="{{ item['cantidad_uso'] }}" required>
+                </div>
+                <div class="form-group">
+                  <label>Unidad</label>
+                  <select name="unidad_uso">
+                    <option {% if item['unidad_uso']=='g' %}selected{% endif %}>g</option>
+                    <option {% if item['unidad_uso']=='ml' %}selected{% endif %}>ml</option>
+                    <option {% if item['unidad_uso']=='unidad' %}selected{% endif %}>unidad</option>
+                  </select>
+                </div>
+                <div class="form-group" style="align-self:end">
+                  <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+                </div>
+              </div>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="5">TOTAL MATERIA PRIMA</td>
+          <td class="td-right td-mono">S/ {{ "%.3f"|format(data['total']) }}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-muted">Sin ingredientes en la receta.</div>
+  {% endif %}
+</div>
+{% endfor %}
+{% endblock %}

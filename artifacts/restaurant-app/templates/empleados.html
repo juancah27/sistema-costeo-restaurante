@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Empleados{% endblock %}
+{% block header_title %}Planilla de Personal{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Empleados</div>
+    <div class="page-sub">Planilla completa de cocina y administración</div>
+  </div>
+</div>
+
+<div class="stats-grid mb-24">
+  <div class="stat-card">
+    <div class="stat-label">Total Empleados</div>
+    <div class="stat-value">{{ empleados|length }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Planilla Total</div>
+    <div class="stat-value">S/ {{ "%.2f"|format(planilla_total) }}</div>
+    <div class="stat-sub">mensual (incl. beneficios)</div>
+  </div>
+</div>
+
+<!-- Add employee -->
+<div class="card mb-24">
+  <div class="card-header"><span class="card-title">Nuevo Empleado</span></div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('empleado_nuevo') }}">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre</label>
+          <input type="text" name="nombre" required placeholder="Nombre completo">
+        </div>
+        <div class="form-group">
+          <label>Cargo</label>
+          <input type="text" name="cargo" placeholder="Cocina / Administración">
+        </div>
+        <div class="form-group">
+          <label>Sueldo Base (S/)</label>
+          <input type="number" name="sueldo_base" step="0.01" min="0" required placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>Gratificaciones</label>
+          <input type="number" name="gratificaciones" step="0.01" min="0" value="0">
+        </div>
+        <div class="form-group">
+          <label>Bonificaciones</label>
+          <input type="number" name="bonificaciones" step="0.01" min="0" value="0">
+        </div>
+        <div class="form-group">
+          <label>Seguro (S/)</label>
+          <input type="number" name="seguro" step="0.01" min="0" value="0">
+        </div>
+        <div class="form-group">
+          <label>CTS (S/)</label>
+          <input type="number" name="cts" step="0.01" min="0" value="0">
+        </div>
+        <div class="form-group" style="align-self:end">
+          <button type="submit" class="btn btn-primary">Agregar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Lista de Personal</span>
+    <span class="badge badge-muted">PLANILLA TOTAL: S/ {{ "%.2f"|format(planilla_total) }}</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Cargo</th>
+          <th class="td-right">Sueldo Base</th>
+          <th class="td-right">Gratif.</th>
+          <th class="td-right">Bonif.</th>
+          <th class="td-right">Seguro</th>
+          <th class="td-right">CTS</th>
+          <th class="td-right">Total</th>
+          <th class="td-center">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in empleados %}
+        {% set total_e = e['sueldo_base'] + e['gratificaciones'] + e['bonificaciones'] + e['seguro'] + e['cts'] %}
+        <tr>
+          <td class="td-bold">{{ e['nombre'] }}</td>
+          <td><span class="badge badge-muted">{{ e['cargo'] or '—' }}</span></td>
+          <td class="td-right td-mono">S/ {{ "%.2f"|format(e['sueldo_base']) }}</td>
+          <td class="td-right td-mono">S/ {{ "%.2f"|format(e['gratificaciones']) }}</td>
+          <td class="td-right td-mono">S/ {{ "%.2f"|format(e['bonificaciones']) }}</td>
+          <td class="td-right td-mono">S/ {{ "%.2f"|format(e['seguro']) }}</td>
+          <td class="td-right td-mono">S/ {{ "%.2f"|format(e['cts']) }}</td>
+          <td class="td-right td-mono td-bold text-accent">S/ {{ "%.2f"|format(total_e) }}</td>
+          <td class="td-center">
+            <button class="btn btn-ghost btn-sm" data-edit-toggle="emp-{{ e['id'] }}">Editar</button>
+            <form method="POST" action="{{ url_for('empleado_eliminar', eid=e['id']) }}"
+                  style="display:inline" data-confirm="¿Eliminar a {{ e['nombre'] }}?">
+              <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+            </form>
+          </td>
+        </tr>
+        <tr class="edit-form-row" id="edit-emp-{{ e['id'] }}">
+          <td colspan="9">
+            <form method="POST" action="{{ url_for('empleado_editar', eid=e['id']) }}">
+              <div class="form-grid">
+                <div class="form-group"><label>Nombre</label><input type="text" name="nombre" value="{{ e['nombre'] }}" required></div>
+                <div class="form-group"><label>Cargo</label><input type="text" name="cargo" value="{{ e['cargo'] or '' }}"></div>
+                <div class="form-group"><label>Sueldo Base</label><input type="number" name="sueldo_base" step="0.01" value="{{ e['sueldo_base'] }}" required></div>
+                <div class="form-group"><label>Gratif.</label><input type="number" name="gratificaciones" step="0.01" value="{{ e['gratificaciones'] }}"></div>
+                <div class="form-group"><label>Bonif.</label><input type="number" name="bonificaciones" step="0.01" value="{{ e['bonificaciones'] }}"></div>
+                <div class="form-group"><label>Seguro</label><input type="number" name="seguro" step="0.01" value="{{ e['seguro'] }}"></div>
+                <div class="form-group"><label>CTS</label><input type="number" name="cts" step="0.01" value="{{ e['cts'] }}"></div>
+                <div class="form-group" style="align-self:end"><button type="submit" class="btn btn-primary btn-sm">Guardar</button></div>
+              </div>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2">PLANILLA TOTAL</td>
+          <td class="td-right td-mono">S/ {{ "%.2f"|format(empleados|sum(attribute='sueldo_base')) }}</td>
+          <td class="td-right td-mono">S/ {{ "%.2f"|format(empleados|sum(attribute='gratificaciones')) }}</td>
+          <td class="td-right td-mono">S/ {{ "%.2f"|format(empleados|sum(attribute='bonificaciones')) }}</td>
+          <td class="td-right td-mono">S/ {{ "%.2f"|format(empleados|sum(attribute='seguro')) }}</td>
+          <td class="td-right td-mono">S/ {{ "%.2f"|format(empleados|sum(attribute='cts')) }}</td>
+          <td class="td-right td-mono text-accent">S/ {{ "%.2f"|format(planilla_total) }}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,378 @@
+Aquí está el prompt adaptado para un restaurante, manteniendo toda la lógica exacta:
+
+🍽️ SISTEMA DE COSTEO — RESTAURANTE
+🛠️ STACK TECNOLÓGICO
+Backend: Python (Flask)
+Base de datos: SQLite
+Frontend: HTML + Jinja2 + CSS vanilla
+⚠️ Sin React, sin Node, sin frameworks externos
+
+🎯 OBJETIVO
+Calcular el costo unitario real de cada plato del menú y generar un Estado de Resultados Unitario por plato, basado en: Materia Prima, MOD, CIF (incluyendo Depreciación), Gastos Administrativos, Gastos de Ventas, Gastos Financieros, Utilidad deseada e IGV (10%).
+
+🔑 LÓGICA CENTRAL DEL SISTEMA
+Paso 1 — Proyección de Demanda (origen de todo)
+El usuario ingresa por plato: nombre, cantidad mensual y precio referencial.
+El sistema calcula automáticamente:
+ingreso_plato     = cantidad_plato × precio_referencial
+total_cantidad    = Σ cantidad de todos los platos
+total_ingresos    = Σ ingreso de todos los platos
+pct_participacion = cantidad_plato / total_cantidad   ← PORCENTAJE CLAVE
+⚠️ Este pct_participacion es el único factor para distribuir CIF (incluyendo depreciación), gastos administrativos, gastos de ventas y gastos financieros. Se recalcula automáticamente cada vez que cambia cualquier dato de proyección.
+Paso 2 — Materia Prima (MP) con receta
+Por cada ingrediente en la receta de un plato:
+costo_unitario_real     = costo_compra / equivalencia
+costo_total_ingrediente = costo_unitario_real × cantidad_uso
+MP_plato                = Σ costo_total_ingrediente
+La tabla de receta muestra: Ingrediente | Cant. usada | U. uso | C. de compra | U. compra | Costo total
+❌ NO mostrar costo_unitario_real como columna separada.
+Paso 3 — Mano de Obra Directa (MOD)
+3a. sueldo_total_empleado = sueldo_base + gratificaciones + bonificaciones + seguro + CTS
+3b. planilla_total = Σ sueldo_total_empleado
+3c. tiempo_base_minutos = dias_laborables × horas_por_dia × 60
+3d. tiempo_efectivo = tiempo_base_minutos × (productividad_pct / 100)
+3e. costo_por_minuto = planilla_total / tiempo_efectivo
+3f. costo_MOD_plato = costo_por_minuto × minutos_por_plato
+⚠️ Mostrar costo_por_minuto = S/ X.XXXX visible en pantalla de Productividad como verificación.
+Validaciones:
+
+productividad_pct entre 1 y 100 (entero)
+Si tiempo_efectivo = 0 → error: "No se puede calcular: tiempo efectivo es cero"
+Si planilla_total = 0 → advertencia: "No hay empleados registrados"
+
+Paso 4 — Costos Indirectos de Fabricación (CIF)
+El CIF se compone de dos fuentes: conceptos manuales + depreciación de activos fijos.
+4a. CIF_concepto_plato = (monto_concepto × pct_participacion) / cantidad_mensual
+4b. dep_anual_activo   = (valor_adquisicion - valor_residual) / vida_util_años
+    dep_mensual_activo = dep_anual_activo / 12
+    total_dep_mensual  = Σ dep_mensual_activo   (solo activos con activo = 1)
+    depreciacion_plato = (total_dep_mensual × pct_participacion) / cantidad_mensual
+4c. CIF_total_plato = Σ CIF_concepto_plato + depreciacion_plato
+Paso 5 — Gastos Administrativos
+GA_concepto_plato = (monto_concepto × pct_participacion) / cantidad_mensual
+GA_total_plato    = Σ GA_concepto_plato
+Paso 6 — Gastos de Ventas
+GV_concepto_plato = (monto_concepto × pct_participacion) / cantidad_mensual
+GV_total_plato    = Σ GV_concepto_plato
+Paso 7 — Gastos Financieros
+GF_concepto_plato = (monto_concepto × pct_participacion) / cantidad_mensual
+GF_total_plato    = Σ GF_concepto_plato
+Paso 8 — Estado de Resultados Unitario
+costo_produccion = MP_plato + MOD_plato + CIF_total_plato
+costo_total      = costo_produccion + GA_total_plato + GV_total_plato + GF_total_plato
+utilidad_S/      = costo_total × (utilidad_pct / 100)
+valor_venta      = costo_total + utilidad_S/
+IGV              = valor_venta × 0.10
+precio_final     = valor_venta × 1.10
+
+📦 DATOS BASE PRECARGADOS — init_db()
+🍽️ Platos
+IDNombreDescripción1Lomo Saltado1 porción individual2Ají de Gallina1 porción individual3Ceviche Clásico1 porción individual4Arroz con Leche1 postre individual5Pollo a la Brasa (1/4)1 porción con guarnición
+🥩 Ingredientes
+IDNombreCosto compraUnidad compra1Lomo de resS/ 38.00kg2Pollo enteroS/ 9.50kg3Pescado fresco (corvina)S/ 22.00kg4Papa amarillaS/ 3.20kg5Cebolla rojaS/ 2.50kg6TomateS/ 2.80kg7Ají amarilloS/ 6.00kg8Ají limoS/ 8.00kg9LimónS/ 4.00kg10ArrozS/ 3.50kg11Aceite vegetalS/ 8.00litro12Sillao (soya)S/ 7.50litro13Leche evaporadaS/ 3.80litro14Pan de moldeS/ 5.50kg15Ajo molidoS/ 12.00kg16Culantro frescoS/ 4.00kg17Azúcar blancaS/ 2.80kg18Canela en ramaS/ 18.00kg19Sal de mesaS/ 1.50kg20Papas fritas (precocidas)S/ 7.00kg
+🔄 Conversiones
+IngredienteU. compraEquivalenciaU. usoLomo de reskg1000gPollo enterokg1000gPescado frescokg1000gPapa amarillakg1000gCebolla rojakg1000gTomatekg1000gAjí amarillokg1000gAjí limokg1000gLimónkg1000gArrozkg1000gAceite vegetallitro1000mlSillaolitro1000mlLeche evaporadalitro1000mlPan de moldekg1000gAjo molidokg1000gCulantro frescokg1000gAzúcar blancakg1000gCanela en ramakg1000gSal de mesakg1000gPapas fritaskg1000g
+📋 Recetas
+Lomo Saltado — MP Total: S/ 12.465
+IngredienteCant. usoU. usoC. compraU. compraCosto totalLomo de res200gS/ 38.00kgS/ 7.600Papa amarilla150gS/ 3.20kgS/ 0.480Cebolla roja80gS/ 2.50kgS/ 0.200Tomate100gS/ 2.80kgS/ 0.280Sillao30mlS/ 7.50litroS/ 0.225Aceite vegetal20mlS/ 8.00litroS/ 0.160Ajo molido10gS/ 12.00kgS/ 0.120Sal de mesa5gS/ 1.50kgS/ 0.008Arroz150gS/ 3.50kgS/ 0.525Papas fritas120gS/ 7.00kgS/ 0.840Culantro fresco10gS/ 4.00kgS/ 0.040Ají amarillo30gS/ 6.00kgS/ 0.180
+Ají de Gallina — MP Total: S/ 9.212
+IngredienteCant. usoU. usoC. compraU. compraCosto totalPollo entero250gS/ 9.50kgS/ 2.375Pan de molde80gS/ 5.50kgS/ 0.440Leche evaporada150mlS/ 3.80litroS/ 0.570Ají amarillo60gS/ 6.00kgS/ 0.360Cebolla roja60gS/ 2.50kgS/ 0.150Ajo molido10gS/ 12.00kgS/ 0.120Aceite vegetal20mlS/ 8.00litroS/ 0.160Papa amarilla200gS/ 3.20kgS/ 0.640Arroz150gS/ 3.50kgS/ 0.525Sal de mesa5gS/ 1.50kgS/ 0.008Culantro fresco15gS/ 4.00kgS/ 0.060
+Ceviche Clásico — MP Total: S/ 11.228
+IngredienteCant. usoU. usoC. compraU. compraCosto totalPescado fresco300gS/ 22.00kgS/ 6.600Limón150gS/ 4.00kgS/ 0.600Cebolla roja100gS/ 2.50kgS/ 0.250Ají limo20gS/ 8.00kgS/ 0.160Culantro fresco10gS/ 4.00kgS/ 0.040Ajo molido5gS/ 12.00kgS/ 0.060Sal de mesa5gS/ 1.50kgS/ 0.008Papa amarilla150gS/ 3.20kgS/ 0.480Choclo (mazorca)100gS/ 3.50kgS/ 0.350
+Arroz con Leche — MP Total: S/ 2.858
+IngredienteCant. usoU. usoC. compraU. compraCosto totalArroz80gS/ 3.50kgS/ 0.280Leche evaporada300mlS/ 3.80litroS/ 1.140Azúcar blanca60gS/ 2.80kgS/ 0.168Canela en rama5gS/ 18.00kgS/ 0.090Sal de mesa2gS/ 1.50kgS/ 0.003
+Pollo a la Brasa 1/4 — MP Total: S/ 7.045
+IngredienteCant. usoU. usoC. compraU. compraCosto totalPollo entero400gS/ 9.50kgS/ 3.800Ajo molido15gS/ 12.00kgS/ 0.180Aceite vegetal30mlS/ 8.00litroS/ 0.240Sal de mesa8gS/ 1.50kgS/ 0.012Papa amarilla200gS/ 3.20kgS/ 0.640Arroz150gS/ 3.50kgS/ 0.525Ají amarillo40gS/ 6.00kgS/ 0.240Culantro fresco10gS/ 4.00kgS/ 0.040
+
+📊 Proyección de Demanda
+PlatoCantidadPrecio ref.Ingreso% ParticipaciónLomo Saltado80S/ 38.00S/ 3,04080/345 = 23.19%Ají de Gallina70S/ 28.00S/ 1,96070/345 = 20.29%Ceviche Clásico90S/ 35.00S/ 3,15090/345 = 26.09%Arroz con Leche60S/ 12.00S/ 72060/345 = 17.39%Pollo a la Brasa45S/ 30.00S/ 1,35045/345 = 13.04%TOTAL345—S/ 10,220100%
+
+👨‍🍳 Empleados
+IDNombreSueldo baseGratif.Bonif.SeguroCTSTotal1Chef principalS/ 2,200S/ 366S/ 120S/ 198S/ 183S/ 3,0672CocineroS/ 1,500S/ 250S/ 80S/ 135S/ 125S/ 2,0903Ayudante cocinaS/ 1,025S/ 170S/ 50S/ 92S/ 85S/ 1,422PLANILLA TOTALS/ 6,579
+
+⏱️ Productividad y MOD
+PlatoMin/platoDías mesHoras/díaProductividadT. efectivoCosto/minMODLomo Saltado20261085%13,260 minS/ 0.4962S/ 9.924Ají de Gallina25261085%13,260 minS/ 0.4962S/ 12.405Ceviche Clásico15261090%14,040 minS/ 0.4686S/ 7.029Arroz con Leche10261090%14,040 minS/ 0.4686S/ 4.686Pollo a la Brasa30261085%13,260 minS/ 0.4962S/ 14.886
+⚠️ Mostrar Costo por minuto = S/ X.XXXX en pantalla de Productividad.
+
+💡 Costos Indirectos de Fabricación (conceptos manuales)
+ConceptoMonto mensualLuzS/ 420.00AguaS/ 130.00Gas / GLPS/ 380.00Alquiler localS/ 2,500.00Mantenimiento cocinaS/ 150.00TOTAL CIF manualS/ 3,580.00
+
+🏭 Activos Fijos (Depreciación)
+IDNombreValor adquis.Valor residualVida útilDep. anualDep. mensualMétodo1Cocina industrialS/ 6,500.00S/ 500.0010 añosS/ 600.00S/ 50.00LINEAL2Horno combinadoS/ 5,200.00S/ 400.0010 añosS/ 480.00S/ 40.00LINEAL3Cámara frigoríficaS/ 4,800.00S/ 300.0010 añosS/ 450.00S/ 37.50LINEAL4Freidora industrialS/ 1,800.00S/ 200.007 añosS/ 228.57S/ 19.05LINEAL5Menaje y utensiliosS/ 1,200.00S/ 0.005 añosS/ 240.00S/ 20.00LINEALTOTALS/ 166.55
+dep_anual_activo   = (valor_adquisicion - valor_residual) / vida_util_años
+dep_mensual_activo = dep_anual_activo / 12
+total_dep_mensual  = Σ dep_mensual_activo   (solo activos con activo = 1)
+depreciacion_plato = (total_dep_mensual × pct_participacion) / cantidad_mensual
+
+🗂️ Gastos Administrativos
+ConceptoMonto mensualContadorS/ 350.00Internet y teléfonoS/ 120.00Licencias y permisosS/ 80.00TOTALS/ 550.00
+📢 Gastos de Ventas
+ConceptoMonto mensualPublicidad en redesS/ 250.00Empaques y envasesS/ 200.00Delivery / comisión plataformasS/ 300.00TOTALS/ 750.00
+🏦 Gastos Financieros
+ConceptoMonto mensualInterés préstamo equiposS/ 180.00Comisión POS bancarioS/ 60.00TOTALS/ 240.00
+
+📦 Kardex — Entradas iniciales de stock
+IngredienteFechaTipoCantidadUnidadC. unitarioC. totalLomo de res2025-01-01ENTRADA5kgS/ 38.00S/ 190.00Pollo entero2025-01-01ENTRADA8kgS/ 9.50S/ 76.00Pescado fresco2025-01-01ENTRADA6kgS/ 22.00S/ 132.00Papa amarilla2025-01-01ENTRADA10kgS/ 3.20S/ 32.00Arroz2025-01-01ENTRADA10kgS/ 3.50S/ 35.00Aceite vegetal2025-01-01ENTRADA5litroS/ 8.00S/ 40.00Leche evaporada2025-01-01ENTRADA6litroS/ 3.80S/ 22.80Cebolla roja2025-01-01ENTRADA5kgS/ 2.50S/ 12.50Ají amarillo2025-01-01ENTRADA3kgS/ 6.00S/ 18.00Limón2025-01-01ENTRADA4kgS/ 4.00S/ 16.00
+Método de valuación: PROMEDIO PONDERADO
+Campos del Kardex: fecha | tipo | cantidad | unidad | costo_unitario | costo_total | saldo_cantidad | saldo_valor | costo_promedio
+donde costo_promedio = saldo_valor / saldo_cantidad
+
+📊 ESTADO DE RESULTADOS UNITARIO COMPLETO
+Ejemplo verificado: Lomo Saltado (pct = 23.19%, cantidad = 80, utilidad = 35%)
+ConceptoCálculoMonto S/1. Materia Prima (MP)Σ receta12.4652. MOD0.4962 × 20 min9.9243. CIF→ Luz(420 × 0.2319) / 801.218→ Agua(130 × 0.2319) / 800.377→ Gas / GLP(380 × 0.2319) / 801.101→ Alquiler local(2,500 × 0.2319) / 807.247→ Mantenimiento cocina(150 × 0.2319) / 800.435→ Depreciación activos(166.55 × 0.2319) / 800.483= TOTAL CIFΣ todos los conceptos10.861= COSTO DE PRODUCCIÓNMP + MOD + CIF33.2504. G. Administrativos(550 × 0.2319) / 801.5945. G. de Ventas(750 × 0.2319) / 802.1746. G. Financieros(240 × 0.2319) / 800.696= COSTO TOTALProducción + GA + GV + GF37.714Utilidad deseada (35%)37.714 × 0.3513.200= VALOR DE VENTACosto total + Utilidad50.914IGV (10%)50.914 × 0.105.091= PRECIO FINALValor venta × 1.1056.005
+
+🗄️ BASE DE DATOS SQLite — ESQUEMA COMPLETO
+sqlCREATE TABLE platos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nombre TEXT NOT NULL,
+  descripcion TEXT
+);
+
+CREATE TABLE ingredientes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nombre TEXT NOT NULL,
+  costo_compra REAL NOT NULL,
+  unidad_compra TEXT NOT NULL
+);
+
+CREATE TABLE conversiones (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ingrediente_id INTEGER NOT NULL,
+  equivalencia REAL NOT NULL,
+  unidad_uso TEXT NOT NULL,
+  FOREIGN KEY (ingrediente_id) REFERENCES ingredientes(id)
+);
+
+CREATE TABLE recetas (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  plato_id INTEGER NOT NULL,
+  ingrediente_id INTEGER NOT NULL,
+  cantidad_uso REAL NOT NULL,
+  unidad_uso TEXT NOT NULL,
+  FOREIGN KEY (plato_id) REFERENCES platos(id),
+  FOREIGN KEY (ingrediente_id) REFERENCES ingredientes(id)
+);
+
+CREATE TABLE kardex (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ingrediente_id INTEGER NOT NULL,
+  fecha TEXT NOT NULL,
+  tipo TEXT NOT NULL CHECK(tipo IN ('ENTRADA','SALIDA','AJUSTE')),
+  cantidad REAL NOT NULL,
+  unidad TEXT NOT NULL,
+  costo_unitario REAL NOT NULL,
+  costo_total REAL NOT NULL,
+  saldo_cantidad REAL NOT NULL,
+  saldo_valor REAL NOT NULL,
+  FOREIGN KEY (ingrediente_id) REFERENCES ingredientes(id)
+);
+
+CREATE TABLE empleados (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nombre TEXT NOT NULL,
+  sueldo_base REAL NOT NULL,
+  gratificaciones REAL DEFAULT 0,
+  bonificaciones REAL DEFAULT 0,
+  seguro REAL DEFAULT 0,
+  cts REAL DEFAULT 0
+);
+
+CREATE TABLE produccion_empleado (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  plato_id INTEGER NOT NULL UNIQUE,
+  minutos_por_plato REAL NOT NULL,
+  dias_laborables INTEGER NOT NULL,
+  horas_por_dia REAL NOT NULL,
+  productividad INTEGER NOT NULL CHECK(productividad BETWEEN 1 AND 100),
+  FOREIGN KEY (plato_id) REFERENCES platos(id)
+);
+
+CREATE TABLE costos_indirectos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  concepto TEXT NOT NULL,
+  monto REAL NOT NULL
+);
+
+CREATE TABLE gastos_admin (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  concepto TEXT NOT NULL,
+  monto REAL NOT NULL
+);
+
+CREATE TABLE gastos_ventas (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  concepto TEXT NOT NULL,
+  monto REAL NOT NULL
+);
+
+CREATE TABLE gastos_financieros (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  concepto TEXT NOT NULL,
+  monto REAL NOT NULL
+);
+
+CREATE TABLE proyeccion (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  plato_id INTEGER NOT NULL UNIQUE,
+  cantidad_mensual INTEGER NOT NULL,
+  precio_referencial REAL NOT NULL,
+  FOREIGN KEY (plato_id) REFERENCES platos(id)
+);
+
+CREATE TABLE activos_fijos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nombre TEXT NOT NULL,
+  valor_adquisicion REAL NOT NULL,
+  valor_residual REAL NOT NULL DEFAULT 0,
+  vida_util_años INTEGER NOT NULL,
+  fecha_adquisicion TEXT NOT NULL,
+  metodo TEXT NOT NULL DEFAULT 'LINEAL' CHECK(metodo IN ('LINEAL')),
+  activo INTEGER NOT NULL DEFAULT 1
+);
+
+🔗 RUTAS FLASK
+GET  /                                → Dashboard resumen de todos los platos
+GET  /proyeccion                      → Proyección de demanda con % calculados
+POST /proyeccion/guardar              → Guardar o actualizar proyección
+
+GET  /ingredientes                    → Listar ingredientes
+POST /ingredientes/nuevo              → Crear ingrediente
+POST /ingredientes/editar/<id>        → Editar ingrediente
+POST /ingredientes/eliminar/<id>      → Eliminar ingrediente
+
+GET  /conversiones                    → Listar conversiones
+POST /conversiones/nuevo              → Crear conversión
+POST /conversiones/editar/<id>        → Editar conversión
+
+GET  /kardex/<ingrediente_id>         → Ver kardex del ingrediente
+POST /kardex/<ingrediente_id>/nuevo   → Agregar movimiento al kardex
+
+GET  /recetas                         → Listar recetas por plato
+POST /recetas/nuevo                   → Agregar ingrediente a receta
+POST /recetas/editar/<id>             → Editar línea de receta
+POST /recetas/eliminar/<id>           → Eliminar línea de receta
+
+GET  /empleados                       → Listar empleados con sueldo total
+POST /empleados/nuevo                 → Crear empleado
+POST /empleados/editar/<id>           → Editar empleado
+
+GET  /productividad                   → Parámetros MOD + costo/min visible por plato
+POST /productividad/guardar           → Guardar parámetros MOD
+
+GET  /costos-indirectos               → Listar CIF manuales
+POST /costos-indirectos/nuevo         → Nuevo concepto CIF
+POST /costos-indirectos/editar/<id>   → Editar CIF
+POST /costos-indirectos/eliminar/<id> → Eliminar CIF
+
+GET  /activos-fijos                   → Listar activos con dep. anual y mensual calculadas
+POST /activos-fijos/nuevo             → Crear activo fijo
+POST /activos-fijos/editar/<id>       → Editar activo fijo
+POST /activos-fijos/eliminar/<id>     → Marcar activo=0 (no eliminar físicamente)
+
+GET  /gastos-admin                    → Listar gastos administrativos
+POST /gastos-admin/nuevo              → Nuevo gasto admin
+POST /gastos-admin/editar/<id>        → Editar gasto admin
+
+GET  /gastos-ventas                   → Listar gastos de ventas
+POST /gastos-ventas/nuevo             → Nuevo gasto ventas
+POST /gastos-ventas/editar/<id>       → Editar gasto ventas
+
+GET  /gastos-financieros              → Listar gastos financieros
+POST /gastos-financieros/nuevo        → Nuevo gasto financiero
+POST /gastos-financieros/editar/<id>  → Editar gasto financiero
+
+GET  /resultado/<plato_id>            → Estado de resultados unitario completo
+
+📐 LÓGICA PYTHON DE REFERENCIA
+python# ── Depreciación ──────────────────────────────────────────────
+def calcular_depreciacion_mensual(db):
+    activos = db.execute(
+        "SELECT * FROM activos_fijos WHERE activo = 1"
+    ).fetchall()
+    total = 0
+    detalle = []
+    for a in activos:
+        dep_anual   = (a['valor_adquisicion'] - a['valor_residual']) / a['vida_util_años']
+        dep_mensual = dep_anual / 12
+        total += dep_mensual
+        detalle.append({**dict(a), 'dep_anual': dep_anual, 'dep_mensual': dep_mensual})
+    return round(total, 4), detalle
+
+def depreciacion_por_plato(db, pct_participacion, cantidad_mensual):
+    total_dep, _ = calcular_depreciacion_mensual(db)
+    if cantidad_mensual == 0:
+        return 0
+    return round((total_dep * pct_participacion) / cantidad_mensual, 4)
+
+# ── Porcentaje de participación ───────────────────────────────
+def calcular_pct_participacion(db):
+    rows = db.execute(
+        "SELECT plato_id, cantidad_mensual FROM proyeccion"
+    ).fetchall()
+    total_cantidad = sum(r['cantidad_mensual'] for r in rows)
+    if total_cantidad == 0:
+        return {}
+    return {
+        r['plato_id']: r['cantidad_mensual'] / total_cantidad
+        for r in rows
+    }
+
+# ── CIF total por plato (manual + depreciación) ───────────────
+def cif_por_plato(db, plato_id):
+    pcts = calcular_pct_participacion(db)
+    pct  = pcts.get(plato_id, 0)
+    cant = db.execute(
+        "SELECT cantidad_mensual FROM proyeccion WHERE plato_id = ?", (plato_id,)
+    ).fetchone()
+    if not cant or cant['cantidad_mensual'] == 0:
+        return 0, []
+    cantidad = cant['cantidad_mensual']
+    conceptos = db.execute("SELECT * FROM costos_indirectos").fetchall()
+    detalle = []
+    total = 0
+    for c in conceptos:
+        valor = round((c['monto'] * pct) / cantidad, 4)
+        total += valor
+        detalle.append({'concepto': c['concepto'], 'monto': c['monto'], 'valor_plato': valor})
+    dep = depreciacion_por_plato(db, pct, cantidad)
+    detalle.append({'concepto': 'Depreciación activos', 'monto': None, 'valor_plato': dep})
+    total += dep
+    return round(total, 4), detalle
+
+# ── MOD ───────────────────────────────────────────────────────
+def mod_por_plato(db, plato_id):
+    prod = db.execute(
+        "SELECT * FROM produccion_empleado WHERE plato_id = ?", (plato_id,)
+    ).fetchone()
+    if not prod:
+        return 0, 0
+    planilla = db.execute(
+        "SELECT SUM(sueldo_base+gratificaciones+bonificaciones+seguro+cts) AS total FROM empleados"
+    ).fetchone()['total'] or 0
+    tiempo_base     = prod['dias_laborables'] * prod['horas_por_dia'] * 60
+    tiempo_efectivo = tiempo_base * (prod['productividad'] / 100)
+    if tiempo_efectivo == 0:
+        return 0, 0
+    costo_minuto = round(planilla / tiempo_efectivo, 6)
+    mod          = round(costo_minuto * prod['minutos_por_plato'], 4)
+    return mod, costo_minuto
+
+🖥️ PANTALLA /activos-fijos
+La tabla muestra columnas calculadas en tiempo real (no se guardan en BD):
+NombreValor adquis.Valor residualVida útilDep. anualDep. mensualEstadoAccionesCocina industrialS/ 6,500.00S/ 500.0010 añosS/ 600.00S/ 50.00ActivoEditar / Desactivar
+Al pie de la tabla:
+TOTAL DEPRECIACIÓN MENSUAL:  S/ 166.55
+(Incluida automáticamente en el CIF de cada plato según % de participación)
+
+⚠️ VALIDACIONES Y CONDICIONES
+
+✅ init_db() carga TODOS los datos base si las tablas están vacías
+✅ pct_participacion se recalcula en cada petición (no se guarda en BD)
+✅ Si no hay proyección → advertencia "No se puede calcular: falta proyección de demanda"
+✅ Si tiempo_efectivo = 0 → error "No se puede calcular: tiempo efectivo es cero"
+✅ Si planilla_total = 0 → advertencia "No hay empleados registrados"
+✅ Activos desactivados (activo = 0) se excluyen del cálculo de depreciación pero se conservan en BD
+✅ El kardex usa método Promedio Ponderado y actualiza saldo_cantidad, saldo_valor y costo_promedio en cada movimiento
+✅ El porcentaje de utilidad es configurable por plato desde la pantalla /resultado/<plato_id>
+✅ IGV siempre fijo al 10%
+✅ precio_final = valor_venta × 1.10

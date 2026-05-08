@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Ingredientes{% endblock %}
+{% block header_title %}Ingredientes{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Ingredientes</div>
+    <div class="page-sub">{{ ingredientes|length }} ingredientes registrados</div>
+  </div>
+</div>
+
+<div class="card mb-24">
+  <div class="card-header"><span class="card-title">Nuevo Ingrediente</span></div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('ingrediente_nuevo') }}">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre</label>
+          <input type="text" name="nombre" required placeholder="Ej. Pimiento rojo">
+        </div>
+        <div class="form-group">
+          <label>Costo compra (S/)</label>
+          <input type="number" name="costo_compra" step="0.01" min="0" required placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>Unidad compra</label>
+          <select name="unidad_compra">
+            <option value="kg">kg</option>
+            <option value="litro">litro</option>
+            <option value="unidad">unidad</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Equivalencia</label>
+          <input type="number" name="equivalencia" step="1" min="1" value="1000">
+        </div>
+        <div class="form-group">
+          <label>Unidad uso</label>
+          <select name="unidad_uso">
+            <option value="g">g</option>
+            <option value="ml">ml</option>
+            <option value="unidad">unidad</option>
+          </select>
+        </div>
+        <div class="form-group" style="align-self:end">
+          <button type="submit" class="btn btn-primary">Agregar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><span class="card-title">Lista de Ingredientes</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Nombre</th>
+          <th class="td-right">Costo Compra</th>
+          <th>U. Compra</th>
+          <th class="td-center">Kardex</th>
+          <th class="td-center">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in ingredientes %}
+        <tr>
+          <td class="text-muted td-mono">{{ i['id'] }}</td>
+          <td class="td-bold">{{ i['nombre'] }}</td>
+          <td class="td-right td-mono">S/ {{ "%.2f"|format(i['costo_compra']) }}</td>
+          <td class="text-muted">{{ i['unidad_compra'] }}</td>
+          <td class="td-center">
+            <a href="{{ url_for('kardex', ing_id=i['id']) }}" class="btn btn-secondary btn-sm">Ver Kardex</a>
+          </td>
+          <td class="td-center">
+            <button class="btn btn-ghost btn-sm" data-edit-toggle="ing-{{ i['id'] }}">Editar</button>
+            <form method="POST" action="{{ url_for('ingrediente_eliminar', iid=i['id']) }}"
+                  style="display:inline" data-confirm="¿Eliminar '{{ i['nombre'] }}' y todos sus registros?">
+              <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+            </form>
+          </td>
+        </tr>
+        <tr class="edit-form-row" id="edit-ing-{{ i['id'] }}">
+          <td colspan="6">
+            <form method="POST" action="{{ url_for('ingrediente_editar', iid=i['id']) }}">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Nombre</label>
+                  <input type="text" name="nombre" value="{{ i['nombre'] }}" required>
+                </div>
+                <div class="form-group">
+                  <label>Costo (S/)</label>
+                  <input type="number" name="costo_compra" step="0.01" value="{{ i['costo_compra'] }}" required>
+                </div>
+                <div class="form-group">
+                  <label>U. Compra</label>
+                  <select name="unidad_compra">
+                    <option {% if i['unidad_compra']=='kg' %}selected{% endif %}>kg</option>
+                    <option {% if i['unidad_compra']=='litro' %}selected{% endif %}>litro</option>
+                    <option {% if i['unidad_compra']=='unidad' %}selected{% endif %}>unidad</option>
+                  </select>
+                </div>
+                <div class="form-group" style="align-self:end">
+                  <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+                </div>
+              </div>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

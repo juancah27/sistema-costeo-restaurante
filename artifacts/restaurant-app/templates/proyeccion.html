@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Proyección de Demanda{% endblock %}
+{% block header_title %}Proyección de Demanda{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Proyección de Demanda</div>
+    <div class="page-sub">Define cantidad mensual y precio referencial por plato. El % de participación se recalcula automáticamente.</div>
+  </div>
+</div>
+
+<div class="card mb-24">
+  <div class="card-header">
+    <span class="card-title">Parámetros por Plato</span>
+  </div>
+  <form method="POST" action="{{ url_for('proyeccion_guardar') }}">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Plato</th>
+            <th class="td-right">Cantidad / Mes</th>
+            <th class="td-right">Precio Ref. (S/)</th>
+            <th class="td-right">Ingreso</th>
+            <th class="td-right">% Participación</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in platos %}
+          {% set pr = proj.get(p['id']) %}
+          {% set pct = pcts.get(p['id'], 0) %}
+          <tr>
+            <td class="td-bold">{{ p['nombre'] }}</td>
+            <td class="td-right">
+              <input type="number" name="cantidad_{{ p['id'] }}"
+                     value="{{ pr['cantidad_mensual'] if pr else 0 }}"
+                     min="0" style="width:90px;text-align:right">
+            </td>
+            <td class="td-right">
+              <input type="number" name="precio_{{ p['id'] }}"
+                     value="{{ pr['precio_referencial'] if pr else 0 }}"
+                     step="0.01" min="0" style="width:90px;text-align:right">
+            </td>
+            <td class="td-right td-mono">
+              {% if pr %}S/ {{ "%.2f"|format(pr['cantidad_mensual'] * pr['precio_referencial']) }}{% else %}—{% endif %}
+            </td>
+            <td class="td-right">
+              {% if pct > 0 %}
+              <div class="flex-center gap-8" style="justify-content:flex-end">
+                {{ "%.2f"|format(pct*100) }}%
+                <div class="progress-bar"><div class="progress-fill" style="width:{{ pct*100 }}%"></div></div>
+              </div>
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>TOTAL</td>
+            <td class="td-right td-mono">{{ total_cantidad }}</td>
+            <td></td>
+            <td class="td-right td-mono">S/ {{ "%.2f"|format(total_ingresos) }}</td>
+            <td class="td-right">100%</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="card-body" style="padding-top:12px">
+      <button type="submit" class="btn btn-primary">Guardar Proyección</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

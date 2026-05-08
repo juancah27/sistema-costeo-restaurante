@@ -1,0 +1,21 @@
+kind = "web"
+previewPath = "/"
+title = "Sistema de Costeo — Restaurante"
+version = "1.0.0"
+id = "artifacts/restaurant-app"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 5000
+
+[services.development]
+run = "PORT=5000 python artifacts/restaurant-app/app.py"
+
+[services.env]
+PORT = "5000"

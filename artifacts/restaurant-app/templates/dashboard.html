@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block header_title %}Dashboard — Resumen de Platos{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Resumen General</div>
+    <div class="page-sub">Vista consolidada de los 7 platos del menú</div>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Total Platos</div>
+    <div class="stat-value">7</div>
+    <div class="stat-sub">en el menú</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Unidades / Mes</div>
+    <div class="stat-value">{{ total_cantidad }}</div>
+    <div class="stat-sub">proyectadas</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Ingresos Proyectados</div>
+    <div class="stat-value">S/ {{ "%.2f"|format(total_ingresos) }}</div>
+    <div class="stat-sub">mensual</div>
+  </div>
+</div>
+
+<!-- Dish Cards -->
+<div class="dish-grid">
+  {% for r in resumen %}
+  <div class="dish-card">
+    {% if r.plato['imagen'] %}
+      <img class="dish-img"
+           src="{{ url_for('static', filename='images/' ~ r.plato['imagen']) }}"
+           alt="{{ r.plato['nombre'] }}"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="dish-img-placeholder" style="display:none">🍽</div>
+    {% else %}
+      <div class="dish-img-placeholder">🍽</div>
+    {% endif %}
+    <div class="dish-body">
+      <div class="dish-name">{{ r.plato['nombre'] }}</div>
+      <div class="dish-desc">{{ r.plato['descripcion'] }}</div>
+      <div class="dish-meta">
+        <span class="meta-pill pill-blue">{{ r.cantidad }} uds/mes</span>
+        <span class="meta-pill pill-orange">{{ r.pct }}%</span>
+        {% if r.costo_total > 0 %}
+        <span class="meta-pill pill-red">Costo S/ {{ "%.3f"|format(r.costo_total) }}</span>
+        {% endif %}
+      </div>
+      <div class="flex gap-8" style="flex-wrap:wrap">
+        <a href="{{ url_for('resultado', plato_id=r.plato['id']) }}" class="btn btn-primary btn-sm">
+          Ver Estado de Resultados
+        </a>
+        <a href="{{ url_for('kardex', ing_id=1) }}" class="btn btn-secondary btn-sm">Kardex</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Summary table -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Tabla Resumen</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Plato</th>
+          <th class="td-right">Cantidad</th>
+          <th class="td-right">Precio Ref.</th>
+          <th class="td-right">Ingreso</th>
+          <th class="td-right">% Part.</th>
+          <th class="td-right">Costo Total</th>
+          <th class="td-center">Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in resumen %}
+        <tr>
+          <td class="td-bold">{{ r.plato['nombre'] }}</td>
+          <td class="td-right td-mono">{{ r.cantidad }}</td>
+          <td class="td-right td-mono">S/ {{ "%.2f"|format(r.precio_ref) }}</td>
+          <td class="td-right td-mono">S/ {{ "%.2f"|format(r.ingreso) }}</td>
+          <td class="td-right">
+            <div class="flex-center gap-8" style="justify-content:flex-end">
+              {{ r.pct }}%
+              <div class="progress-bar"><div class="progress-fill" style="width:{{ r.pct }}%"></div></div>
+            </div>
+          </td>
+          <td class="td-right td-mono">{% if r.costo_total > 0 %}S/ {{ "%.4f"|format(r.costo_total) }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          <td class="td-center">
+            <a href="{{ url_for('resultado', plato_id=r.plato['id']) }}" class="btn btn-primary btn-sm">Resultado</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td>TOTAL</td>
+          <td class="td-right td-mono">{{ total_cantidad }}</td>
+          <td></td>
+          <td class="td-right td-mono">S/ {{ "%.2f"|format(total_ingresos) }}</td>
+          <td class="td-right">100%</td>
+          <td></td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% endblock %}

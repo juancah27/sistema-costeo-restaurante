@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Activos Fijos{% endblock %}
+{% block header_title %}Activos Fijos y Depreciación{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Activos Fijos</div>
+    <div class="page-sub">Depreciación lineal — incluida automáticamente en el CIF</div>
+  </div>
+</div>
+
+<div class="card mb-24">
+  <div class="card-header"><span class="card-title">Nuevo Activo Fijo</span></div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('activo_nuevo') }}">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre</label>
+          <input type="text" name="nombre" required placeholder="Ej. Licuadora industrial">
+        </div>
+        <div class="form-group">
+          <label>Valor Adquisición (S/)</label>
+          <input type="number" name="valor_adquisicion" step="0.01" min="0" required placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>Valor Residual (S/)</label>
+          <input type="number" name="valor_residual" step="0.01" min="0" value="0">
+        </div>
+        <div class="form-group">
+          <label>Vida Útil (años)</label>
+          <input type="number" name="vida_util_anos" min="1" value="5">
+        </div>
+        <div class="form-group">
+          <label>Fecha Adquisición</label>
+          <input type="date" name="fecha_adquisicion" value="2025-01-01">
+        </div>
+        <div class="form-group" style="align-self:end">
+          <button type="submit" class="btn btn-primary">Agregar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card mb-24">
+  <div class="card-header">
+    <span class="card-title">Activos Activos</span>
+    <span class="badge badge-success">Total Dep. Mensual: S/ {{ "%.2f"|format(total_dep) }}</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th class="td-right">Valor Adquis.</th>
+          <th class="td-right">Valor Residual</th>
+          <th class="td-right">Vida Útil</th>
+          <th class="td-right">Dep. Anual</th>
+          <th class="td-right">Dep. Mensual</th>
+          <th>Estado</th>
+          <th class="td-center">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in detalle %}
+        <tr>
+          <td class="td-bold">{{ a['nombre'] }}</td>
+          <td class="td-right td-mono">S/ {{ "%.2f"|format(a['valor_adquisicion']) }}</td>
+          <td class="td-right td-mono">S/ {{ "%.2f"|format(a['valor_residual']) }}</td>
+          <td class="td-right">{{ a['vida_util_anos'] }} años</td>
+          <td class="td-right td-mono">S/ {{ "%.2f"|format(a['dep_anual']) }}</td>
+          <td class="td-right td-mono td-bold">S/ {{ "%.2f"|format(a['dep_mensual']) }}</td>
+          <td><span class="badge badge-success">Activo</span></td>
+          <td class="td-center">
+            <button class="btn btn-ghost btn-sm" data-edit-toggle="act-{{ a['id'] }}">Editar</button>
+            <form method="POST" action="{{ url_for('activo_eliminar', aid=a['id']) }}"
+                  style="display:inline" data-confirm="¿Desactivar este activo? No se eliminará de la BD.">
+              <button type="submit" class="btn btn-danger btn-sm">Desactivar</button>
+            </form>
+          </td>
+        </tr>
+        <tr class="edit-form-row" id="edit-act-{{ a['id'] }}">
+          <td colspan="8">
+            <form method="POST" action="{{ url_for('activo_editar', aid=a['id']) }}">
+              <div class="form-grid">
+                <div class="form-group"><label>Nombre</label><input type="text" name="nombre" value="{{ a['nombre'] }}" required></div>
+                <div class="form-group"><label>Valor Adquis.</label><input type="number" name="valor_adquisicion" step="0.01" value="{{ a['valor_adquisicion'] }}" required></div>
+                <div class="form-group"><label>Valor Residual</label><input type="number" name="valor_residual" step="0.01" value="{{ a['valor_residual'] }}"></div>
+                <div class="form-group"><label>Vida Útil (años)</label><input type="number" name="vida_util_anos" min="1" value="{{ a['vida_util_anos'] }}" required></div>
+                <div class="form-group"><label>Fecha Adquis.</label><input type="date" name="fecha_adquisicion" value="{{ a['fecha_adquisicion'] }}"></div>
+                <div class="form-group" style="align-self:end"><button type="submit" class="btn btn-primary btn-sm">Guardar</button></div>
+              </div>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="5">TOTAL DEPRECIACIÓN MENSUAL</td>
+          <td class="td-right td-mono">S/ {{ "%.2f"|format(total_dep) }}</td>
+          <td colspan="2" class="text-muted" style="font-size:11px">Incluida en CIF por % participación</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+{% if inactivos %}
+<div class="card">
+  <div class="card-header"><span class="card-title">Activos Desactivados</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Nombre</th><th class="td-right">Valor Adquis.</th><th>Estado</th></tr></thead>
+      <tbody>
+        {% for a in inactivos %}
+        <tr>
+          <td class="text-muted">{{ a['nombre'] }}</td>
+          <td class="td-right td-mono text-muted">S/ {{ "%.2f"|format(a['valor_adquisicion']) }}</td>
+          <td><span class="badge badge-danger">Inactivo</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

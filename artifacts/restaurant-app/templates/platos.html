@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Platos{% endblock %}
+{% block header_title %}Platos del Menú{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Platos</div>
+    <div class="page-sub">{{ platos|length }} platos registrados</div>
+  </div>
+</div>
+
+<!-- Add form -->
+<div class="card mb-24">
+  <div class="card-header"><span class="card-title">Nuevo Plato</span></div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('plato_nuevo') }}">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre</label>
+          <input type="text" name="nombre" required placeholder="Ej. Seco de Res">
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <input type="text" name="descripcion" placeholder="1 porción individual">
+        </div>
+        <div class="form-group" style="align-self:end">
+          <button type="submit" class="btn btn-primary">Agregar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><span class="card-title">Lista de Platos</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>#</th><th>Nombre</th><th>Descripción</th><th>Imagen</th><th class="td-center">Acciones</th></tr>
+      </thead>
+      <tbody>
+        {% for p in platos %}
+        <tr>
+          <td class="text-muted td-mono">{{ p['id'] }}</td>
+          <td class="td-bold">{{ p['nombre'] }}</td>
+          <td class="text-muted">{{ p['descripcion'] or '—' }}</td>
+          <td>
+            {% if p['imagen'] %}
+              <img src="{{ url_for('static', filename='images/' ~ p['imagen']) }}"
+                   style="width:48px;height:36px;object-fit:cover;border-radius:4px;"
+                   onerror="this.style.display='none'">
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td class="td-center">
+            <button class="btn btn-ghost btn-sm" data-edit-toggle="plato-{{ p['id'] }}">Editar</button>
+            <a href="{{ url_for('resultado', plato_id=p['id']) }}" class="btn btn-primary btn-sm">Resultado</a>
+          </td>
+        </tr>
+        <tr class="edit-form-row" id="edit-plato-{{ p['id'] }}">
+          <td colspan="5">
+            <form method="POST" action="{{ url_for('plato_editar', pid=p['id']) }}">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Nombre</label>
+                  <input type="text" name="nombre" value="{{ p['nombre'] }}" required>
+                </div>
+                <div class="form-group">
+                  <label>Descripción</label>
+                  <input type="text" name="descripcion" value="{{ p['descripcion'] or '' }}">
+                </div>
+                <div class="form-group" style="align-self:end">
+                  <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+                </div>
+              </div>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
