@@ -1,0 +1,31 @@
+PS C:\Users\yarit\OneDrive\Desktop\Recipe-Generator-Plus> & C:\Users\yarit\AppData\Roaming\uv\python\cpython-3.14.4-windows-x86_64-none\python.exe c:/Users/yarit/OneDrive/Desktop/Recipe-Generator-Plus/artifacts/restaurant-app/app.py
+Traceback (most recent call last):
+  File "c:\Users\yarit\OneDrive\Desktop\Recipe-Generator-Plus\artifacts\restaurant-app\app.py", line 1, in <module>
+    from flask import Flask, render_template, request, redirect, url_for, flash, g
+ModuleNotFoundError: No module named 'flask'
+PS C:\Users\yarit\OneDrive\Desktop\Recipe-Generator-Plus> & C:\Users\yarit\AppData\Roaming\uv\python\cpython-3.14.4-windows-x86_64-none\python.exe c:/Users/yarit/OneDrive/Desktop/Recipe-Generator-Plus/artifacts/restaurant-app/app.py
+Traceback (most recent call last):
+  File "c:\Users\yarit\OneDrive\Desktop\Recipe-Generator-Plus\artifacts\restaurant-app\app.py", line 1, in <module>
+    from flask import Flask, render_template, request, redirect, url_for, flash, g
+ModuleNotFoundError: No module named 'flask'
+PS C:\Users\yarit\OneDrive\Desktop\Recipe-Generator-Plus> uv pip install flask --system
+Using Python 3.14.4 environment at: C:\Users\yarit\AppData\Roaming\uv\python\cpython-3.14.4-windows-x86_64-none
+error: The interpreter at C:\Users\yarit\AppData\Roaming\uv\python\cpython-3.14-windows-x86_64-none is externally managed, and indicates the following:
+
+  This Python installation is managed by uv and should not be modified.
+
+hint: Virtual environments were not considered due to the `--system` flag
+PS C:\Users\yarit\OneDrive\Desktop\Recipe-Generator-Plus> pip install flask
+pip : El término 'pip' no se reconoce como nombre de un cmdlet, 
+función, archivo de script o programa ejecutable. Compruebe si 
+escribió correctamente el nombre o, si incluyó una ruta de 
+acceso, compruebe que dicha ruta es correcta e inténtelo de 
+nuevo.
+En línea: 1 Carácter: 1
++ pip install flask
++ ~~~
+    + CategoryInfo          : ObjectNotFound: (pip:String) [],  
+   CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+PS C:\Users\yarit\OneDrive\Desktop\Recipe-Generator-Plus> 
