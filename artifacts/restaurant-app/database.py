@@ -1,13 +1,47 @@
 import os
+import shutil
 import sqlite3
+import tempfile
 
 from werkzeug.security import generate_password_hash
 
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "restaurant.db")
+BASE_DIR = os.path.dirname(__file__)
+BUNDLED_DB_PATH = os.path.join(BASE_DIR, "restaurant.db")
+
+
+def _resolve_db_path():
+    """Return a writable database path for local and serverless runtimes."""
+    explicit_path = os.environ.get("DATABASE_PATH")
+    if explicit_path:
+        return explicit_path
+
+    if os.environ.get("VERCEL"):
+        return os.path.join(tempfile.gettempdir(), "restaurant.db")
+
+    return BUNDLED_DB_PATH
+
+
+DB_PATH = _resolve_db_path()
+
+
+def _ensure_db_file():
+    """Prepare SQLite file before opening a connection."""
+    db_dir = os.path.dirname(DB_PATH)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
+
+    if (
+        os.environ.get("VERCEL")
+        and DB_PATH != BUNDLED_DB_PATH
+        and not os.path.exists(DB_PATH)
+        and os.path.exists(BUNDLED_DB_PATH)
+    ):
+        shutil.copyfile(BUNDLED_DB_PATH, DB_PATH)
 
 
 def get_db():
+    _ensure_db_file()
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
