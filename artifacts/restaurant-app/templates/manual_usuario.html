@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "manual_pdf_base.html" if modo_pdf|default(false) else "base.html" %}
 {% block title %}Manual de Usuario{% endblock %}
 {% block header_title %}Manual de Usuario{% endblock %}
 

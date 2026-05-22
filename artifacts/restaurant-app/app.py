@@ -1006,6 +1006,13 @@ def manual_usuario():
     return render_template("manual_usuario.html", **_manual_context(db))
 
 
+@app.route("/manuales/pdf")
+@login_requerido
+@permiso_requerido("manuales", "lectura")
+def manuales_pdf():
+    return render_template("manuales_pdf.html")
+
+
 @app.route("/manual-sistema/pdf")
 @login_requerido
 @permiso_requerido("manuales", "lectura")
@@ -1016,6 +1023,18 @@ def manual_sistema_pdf():
 
 
 # ─── Kardex ───────────────────────────────────────────────────────────────────
+
+@app.route("/manual-usuario/pdf")
+@login_requerido
+@permiso_requerido("manuales", "lectura")
+def manual_usuario_pdf():
+    db = g.db
+    context = _manual_context(db)
+    context["modo_pdf"] = True
+    response = make_response(render_template("manual_usuario.html", **context))
+    response.headers["Content-Type"] = "text/html; charset=utf-8"
+    return response
+
 
 @app.route("/kardex/<int:ing_id>")
 @login_requerido

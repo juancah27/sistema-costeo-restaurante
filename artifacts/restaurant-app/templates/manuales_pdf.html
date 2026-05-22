@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Manuales PDF{% endblock %}
+{% block header_title %}Manual PDF limpio{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Elige un manual para leer o imprimir</div>
+    <div class="page-sub">Versiones preparadas para revisar en pantalla y guardar como PDF desde el navegador.</div>
+  </div>
+</div>
+
+<div class="stats-grid mb-24">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Manual de Usuario</span>
+      <span class="badge badge-success">Operativo</span>
+    </div>
+    <div class="card-body">
+      <p class="text-muted mb-16">Guia paso a paso para aprender que hace cada modulo, como usarlo y que datos revisar antes de calcular precios.</p>
+      <table>
+        <tr><td>Dirigido a</td><td>Usuarios finales</td></tr>
+        <tr><td>Contenido</td><td>Login, roles, modulos, buenas practicas y glosario</td></tr>
+        <tr><td>Formato</td><td>A4 imprimible</td></tr>
+      </table>
+      <div class="flex gap-8 mt-16">
+        <a class="btn btn-primary" href="{{ url_for('manual_usuario_pdf') }}">Leer / Imprimir</a>
+        <a class="btn btn-secondary" href="{{ url_for('manual_usuario') }}">Ver dentro de la app</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Manual de Sistema</span>
+      <span class="badge badge-warning">Tecnico</span>
+    </div>
+    <div class="card-body">
+      <p class="text-muted mb-16">Documento tecnico con arquitectura, base de datos, rutas, calculos y pruebas del sistema.</p>
+      <table>
+        <tr><td>Dirigido a</td><td>Desarrolladores y revisores tecnicos</td></tr>
+        <tr><td>Contenido</td><td>Estructura, SQL, formulas, rutas y despliegue</td></tr>
+        <tr><td>Formato</td><td>HTML limpio para PDF</td></tr>
+      </table>
+      <div class="flex gap-8 mt-16">
+        <a class="btn btn-primary" href="{{ url_for('manual_sistema_pdf') }}">Leer / Imprimir</a>
+        <a class="btn btn-secondary" href="{{ url_for('manual_sistema') }}">Ver dentro de la app</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><span class="card-title">Como guardar en PDF</span></div>
+  <div class="card-body">
+    <ol>
+      <li>Elige el manual que deseas abrir.</li>
+      <li>Presiona <strong>Imprimir / Guardar PDF</strong> o usa <strong>Ctrl+P</strong>.</li>
+      <li>Selecciona <strong>Guardar como PDF</strong> en el navegador.</li>
+      <li>Verifica que el tamano de papel sea <strong>A4</strong>.</li>
+    </ol>
+    <div class="nota-info">Las vistas limpias ocultan el menu y los botones al imprimir.</div>
+  </div>
+</div>
+{% endblock %}

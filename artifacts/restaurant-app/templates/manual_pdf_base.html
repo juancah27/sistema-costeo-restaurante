@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Manual PDF{% endblock %} - Sistema de Costeo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="no-print" style="max-width:210mm;margin:16px auto;display:flex;justify-content:space-between;gap:12px;align-items:center;">
+    <a class="btn btn-secondary" href="{{ url_for('manuales_pdf') }}">Volver a manuales</a>
+    <button class="btn btn-primary" onclick="window.print()">Imprimir / Guardar PDF</button>
+  </div>
+  {% block content %}{% endblock %}
+</body>
+</html>
