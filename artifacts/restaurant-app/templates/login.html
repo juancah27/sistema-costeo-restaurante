@@ -8,33 +8,54 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body class="login-page">
-  <main class="login-card">
-    <div class="login-logo">SC</div>
-    <h1>Sistema de Costeo</h1>
-    <p>Restaurante</p>
+<body class="login-page login-page-peru">
+  <main class="login-shell">
+    <section class="login-visual" aria-label="Restaurante peruano">
+      <img src="{{ url_for('static', filename='images/lomo_saltado.png') }}" alt="Plato peruano servido">
+      <div class="login-visual-overlay">
+        <span class="login-kicker">Restaurante peruano</span>
+        <h2>Control de costos con sabor de casa</h2>
+        <p>Insumos, recetas, planilla y rentabilidad en un solo sistema.</p>
+      </div>
+    </section>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="alerts">
-          {% for cat, msg in messages %}
-            <div class="alert alert-{{ cat }}">{{ msg }}</div>
-          {% endfor %}
+    <section class="login-card" aria-label="Inicio de sesion">
+      <div class="login-brand">
+        <div class="login-logo">SC</div>
+        <div>
+          <h1>Sistema de Costeo</h1>
+          <p>Gestion gastronomica</p>
         </div>
-      {% endif %}
-    {% endwith %}
+      </div>
 
-    <form method="POST" action="{{ url_for('login', next=request.args.get('next', '')) }}">
-      <div class="form-group">
-        <label>Usuario</label>
-        <input name="username" required autofocus autocomplete="username">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="alerts">
+            {% for cat, msg in messages %}
+              <div class="alert alert-{{ cat }}">{{ msg }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('login', next=request.args.get('next', '')) }}">
+        <div class="form-group">
+          <label>Usuario</label>
+          <input name="username" required autofocus autocomplete="username" placeholder="admin">
+        </div>
+        <div class="form-group">
+          <label>Contrasena</label>
+          <input type="password" name="password" required autocomplete="current-password" placeholder="Minimo 6 caracteres">
+        </div>
+        <button class="btn btn-primary btn-full login-submit" type="submit">Ingresar al sistema</button>
+      </form>
+
+      <div class="login-footer">
+        <span>Costeo</span>
+        <span>Recetas</span>
+        <span>Rentabilidad</span>
       </div>
-      <div class="form-group">
-        <label>Contrasena</label>
-        <input type="password" name="password" required autocomplete="current-password">
-      </div>
-      <button class="btn btn-primary btn-full" type="submit">Ingresar</button>
-    </form>
+    </section>
   </main>
 </body>
 </html>

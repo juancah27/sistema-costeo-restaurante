@@ -527,40 +527,166 @@ input[type="number"] { font-family: 'SF Mono', 'Fira Code', monospace; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
+  background:
+    linear-gradient(135deg, rgba(192, 57, 43, .10), rgba(230, 126, 34, .08)),
+    var(--bg);
   padding: 24px;
 }
 
-.login-card {
-  width: min(420px, 100%);
+.login-page-peru::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(192, 57, 43, .08) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(150, 41, 31, .05) 1px, transparent 1px);
+  background-size: 42px 42px;
+  pointer-events: none;
+}
+
+.login-shell {
+  width: min(980px, 100%);
+  min-height: 620px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, .85fr);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 32px;
+  box-shadow: 0 18px 60px rgba(26, 26, 24, .14);
+  overflow: hidden;
+  position: relative;
+}
+
+.login-visual {
+  min-height: 620px;
+  position: relative;
+  background: #1a1a18;
+  overflow: hidden;
+}
+
+.login-visual img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: saturate(1.04) contrast(1.02);
+}
+
+.login-visual::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(26, 26, 24, .86) 0%, rgba(26, 26, 24, .44) 52%, rgba(26, 26, 24, .12) 100%),
+    linear-gradient(0deg, rgba(150, 41, 31, .34), transparent 46%);
+}
+
+.login-visual-overlay {
+  position: absolute;
+  left: 36px;
+  right: 36px;
+  bottom: 36px;
+  z-index: 1;
+  color: #fff;
+}
+
+.login-kicker {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(255,255,255,.32);
+  background: rgba(255,255,255,.14);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 14px;
+}
+
+.login-visual-overlay h2 {
+  font-size: 34px;
+  line-height: 1.08;
+  max-width: 420px;
+  margin-bottom: 10px;
+}
+
+.login-visual-overlay p {
+  max-width: 390px;
+  color: rgba(255,255,255,.82);
+  font-size: 14px;
+}
+
+.login-card {
+  width: 100%;
+  background: var(--surface);
+  padding: 52px 44px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
 }
 
 .login-logo {
-  width: 48px;
-  height: 48px;
+  width: 50px;
+  height: 50px;
   border-radius: var(--radius);
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--warning));
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  margin-bottom: 16px;
+  font-weight: 800;
+  box-shadow: 0 10px 24px rgba(192, 57, 43, .24);
 }
 
 .login-card h1 {
   font-size: 22px;
-  margin-bottom: 2px;
+  line-height: 1.15;
+  margin-bottom: 3px;
 }
 
 .login-card p {
   color: var(--muted);
-  margin-bottom: 20px;
+}
+
+.login-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.login-card input {
+  padding: 11px 12px;
+  background: #fffdfb;
+}
+
+.login-submit {
+  margin-top: 4px;
+  padding: 11px 16px;
+}
+
+.login-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 24px;
+  color: var(--muted);
+}
+
+.login-footer span {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .role-admin { background: var(--accent-light); color: var(--accent); }
@@ -586,11 +712,23 @@ input[type="number"] { font-family: 'SF Mono', 'Fira Code', monospace; }
   .content { padding: 16px; }
   .dish-grid { grid-template-columns: 1fr 1fr; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
+  .login-shell { grid-template-columns: 1fr; min-height: auto; }
+  .login-visual { min-height: 220px; }
+  .login-visual-overlay { left: 24px; right: 24px; bottom: 24px; }
+  .login-visual-overlay h2 { font-size: 26px; max-width: 320px; }
+  .login-card { padding: 32px 24px; }
 }
 
 @media (max-width: 500px) {
   .dish-grid { grid-template-columns: 1fr; }
   .stats-grid { grid-template-columns: 1fr; }
+  .login-page { padding: 14px; align-items: stretch; }
+  .login-shell { min-height: calc(100vh - 28px); }
+  .login-visual { min-height: 180px; }
+  .login-visual-overlay h2 { font-size: 22px; }
+  .login-visual-overlay p { display: none; }
+  .login-brand { align-items: flex-start; }
+  .login-card { justify-content: flex-start; }
 }
 
 /* A4 report mode - screen */
