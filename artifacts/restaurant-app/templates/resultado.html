@@ -1,215 +1,57 @@
 {% extends "base.html" %}
-{% block title %}Estado de Resultados — {{ plato['nombre'] }}{% endblock %}
+{% block title %}Estado de Resultados - {{ plato['nombre'] }}{% endblock %}
 {% block header_title %}Estado de Resultados Unitario{% endblock %}
-
-{% block header_extra %}
-<span class="header-badge">{{ plato['nombre'] }}</span>
-{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div>
     <div class="page-title">{{ plato['nombre'] }}</div>
-    <div class="page-sub">
-      {{ plato['descripcion'] }} &nbsp;·&nbsp;
-      Participación: <strong>{{ pct }}%</strong> &nbsp;·&nbsp;
-      Cantidad mensual: <strong>{{ proj['cantidad_mensual'] }}</strong> uds
-    </div>
+    <div class="page-sub">Participacion: {{ pct }}% | Cantidad mensual: {{ proj['cantidad_mensual'] }} | IGV: {{ igv_pct }}%</div>
   </div>
-  <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Dashboard</a>
+  <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Dashboard</a>
 </div>
 
-<!-- Utilidad configurator -->
-<div class="card mb-24">
-  <div class="card-header"><span class="card-title">Configurar Utilidad Deseada</span></div>
-  <div class="card-body">
-    <form method="GET" action="{{ url_for('resultado', plato_id=plato['id']) }}">
-      <div class="form-grid" style="align-items:end">
-        <div class="form-group">
-          <label>% de Utilidad</label>
-          <input type="number" name="utilidad_pct" value="{{ utilidad_pct }}"
-                 min="0" max="500" step="0.1" style="width:120px">
-        </div>
-        <div>
-          <button type="submit" class="btn btn-primary">Recalcular</button>
-        </div>
-      </div>
-    </form>
-  </div>
-</div>
+<div class="card mb-24"><div class="card-header"><span class="card-title">Configurar utilidad</span></div><div class="card-body">
+  <form method="GET" action="{{ url_for('resultado', plato_id=plato['id']) }}"><div class="form-grid"><div class="form-group"><label>% utilidad</label><input type="number" name="utilidad_pct" value="{{ utilidad_pct }}" step="0.1"></div><div style="align-self:end"><button class="btn btn-primary">Recalcular</button></div></div></form>
+</div></div>
 
-<!-- Imagen del plato -->
-{% if plato['imagen'] %}
-<div class="mb-24">
-  <img src="{{ url_for('static', filename='images/' ~ plato['imagen']) }}"
-       alt="{{ plato['nombre'] }}"
-       style="width:100%;max-width:520px;height:240px;object-fit:cover;border-radius:12px;border:1px solid var(--border);"
-       onerror="this.style.display='none'">
-</div>
-{% endif %}
-
-<!-- Estado de Resultados -->
 <div class="card">
-  <div class="card-header">
-    <span class="card-title">Estado de Resultados Unitario</span>
-    <span class="badge badge-muted">Utilidad: {{ utilidad_pct }}%  &middot;  IGV: 10%</span>
-  </div>
-  <div class="table-wrap">
-    <table class="er-table">
-      <thead>
-        <tr>
-          <th>Concepto</th>
-          <th>Detalle / Cálculo</th>
-          <th class="td-right">Monto (S/)</th>
-        </tr>
-      </thead>
-      <tbody>
+  <div class="card-header"><span class="card-title">Estado de Resultados Unitario</span><span class="badge badge-muted">{{ config['moneda'] }}</span></div>
+  <div class="table-wrap"><table class="er-table">
+    <thead><tr><th>Concepto</th><th>Detalle</th><th class="td-right">Monto</th></tr></thead>
+    <tbody>
+      <tr class="er-section"><td colspan="3">1. Materia Prima (MP)</td></tr>
+      {% for d in mp_detalle %}<tr><td>{{ d['ingrediente'] }}</td><td class="text-muted">{{ d['cantidad_uso'] }} {{ d['unidad_uso'] }} | rendimiento {{ "%.1f"|format(d['rendimiento_pct']) }}%</td><td class="td-right td-mono">S/ {{ "%.4f"|format(d['costo_total']) }}</td></tr>{% endfor %}
+      <tr><td colspan="2" class="td-bold">Total MP</td><td class="td-right td-mono td-bold">S/ {{ "%.4f"|format(mp) }}</td></tr>
 
-        <!-- Materia Prima -->
-        <tr class="er-section"><td colspan="3">1. MATERIA PRIMA (MP)</td></tr>
-        {% for d in mp_detalle %}
-        <tr>
-          <td style="padding-left:28px">{{ d['ingrediente'] }}</td>
-          <td class="text-muted td-mono" style="font-size:11px">
-            {{ d['cantidad_uso'] }}{{ d['unidad_uso'] }} × S/{{ "%.2f"|format(d['costo_compra']) }}/{{ d['unidad_compra'] }}
-          </td>
-          <td class="td-right td-mono">S/ {{ "%.4f"|format(d['costo_total']) }}</td>
-        </tr>
-        {% endfor %}
-        <tr style="background:var(--bg)">
-          <td colspan="2" class="td-bold">= TOTAL MATERIA PRIMA</td>
-          <td class="td-right td-mono td-bold">S/ {{ "%.4f"|format(mp) }}</td>
-        </tr>
+      <tr class="er-section"><td colspan="3">2. Mano de Obra Directa (MOD)</td></tr>
+      <tr><td>Costo por minuto MOD</td><td>{% if prod and prod['usar_tiempo_real'] %}Tiempo real medido{% else %}Tiempo teorico{% endif %}</td><td class="td-right td-mono">S/ {{ "%.4f"|format(mod) }}</td></tr>
+      <tr><td colspan="2" class="td-bold">Total MOD</td><td class="td-right td-mono td-bold">S/ {{ "%.4f"|format(mod) }}</td></tr>
 
-        <!-- MOD -->
-        <tr class="er-section"><td colspan="3">2. MANO DE OBRA DIRECTA (MOD)</td></tr>
-        {% if prod %}
-        <tr>
-          <td style="padding-left:28px">Costo por minuto</td>
-          <td class="text-muted td-mono" style="font-size:11px">
-            S/ {{ "%.4f"|format(costo_min) }}/min × {{ prod['minutos_por_plato'] }} min
-          </td>
-          <td class="td-right td-mono">S/ {{ "%.4f"|format(mod) }}</td>
-        </tr>
-        {% endif %}
-        <tr style="background:var(--bg)">
-          <td colspan="2" class="td-bold">= TOTAL MOD</td>
-          <td class="td-right td-mono td-bold">S/ {{ "%.4f"|format(mod) }}</td>
-        </tr>
+      <tr class="er-section"><td colspan="3">3. CIF (incluye MOI, depreciacion y tasas)</td></tr>
+      {% for d in cif_detalle %}<tr><td>{{ d['concepto'] }}</td><td class="text-muted">{{ d['categoria'] if d['categoria'] else 'AUTO' }}{% if d['automatico'] %} | automatico{% endif %}</td><td class="td-right td-mono">S/ {{ "%.4f"|format(d['valor_plato']) }}</td></tr>{% endfor %}
+      <tr><td colspan="2" class="td-bold">Total CIF</td><td class="td-right td-mono td-bold">S/ {{ "%.4f"|format(cif) }}</td></tr>
 
-        <!-- CIF -->
-        <tr class="er-section"><td colspan="3">3. COSTOS INDIRECTOS DE FABRICACIÓN (CIF)</td></tr>
-        {% for d in cif_detalle %}
-        <tr>
-          <td style="padding-left:28px">{{ d['concepto'] }}</td>
-          <td class="text-muted td-mono" style="font-size:11px">
-            {% if d['monto'] %}
-              (S/{{ "%.2f"|format(d['monto']) }} × {{ pct }}%) / {{ proj['cantidad_mensual'] }}
-            {% else %}
-              (S/{{ "%.4f"|format(d['valor_plato']) }} — depreciación)
-            {% endif %}
-          </td>
-          <td class="td-right td-mono">S/ {{ "%.4f"|format(d['valor_plato']) }}</td>
-        </tr>
-        {% endfor %}
-        <tr style="background:var(--bg)">
-          <td colspan="2" class="td-bold">= TOTAL CIF</td>
-          <td class="td-right td-mono td-bold">S/ {{ "%.4f"|format(cif) }}</td>
-        </tr>
+      <tr class="er-total"><td colspan="2">Costo de produccion = MP + MOD + CIF</td><td class="td-right td-mono">S/ {{ "%.4f"|format(costo_produccion) }}</td></tr>
 
-        <!-- Costo de Producción -->
-        <tr class="er-total" style="background:#f0ede8">
-          <td colspan="2">= COSTO DE PRODUCCIÓN (MP + MOD + CIF)</td>
-          <td class="td-right td-mono">S/ {{ "%.4f"|format(costo_produccion) }}</td>
-        </tr>
+      <tr class="er-section"><td colspan="3">4. Gastos Administrativos (incluye ADMIN y regulatorios)</td></tr>
+      {% for d in ga_detalle %}<tr><td>{{ d['concepto'] }}</td><td class="text-muted">{{ d['categoria'] if d['categoria'] else 'GENERAL' }}{% if d['automatico'] %} | automatico{% endif %}</td><td class="td-right td-mono">S/ {{ "%.4f"|format(d['valor_plato']) }}</td></tr>{% endfor %}
+      <tr><td colspan="2" class="td-bold">Total GA</td><td class="td-right td-mono td-bold">S/ {{ "%.4f"|format(ga) }}</td></tr>
 
-        <!-- Gastos Admin -->
-        <tr class="er-section"><td colspan="3">4. GASTOS ADMINISTRATIVOS (GA)</td></tr>
-        {% for d in ga_detalle %}
-        <tr>
-          <td style="padding-left:28px">{{ d['concepto'] }}</td>
-          <td class="text-muted td-mono" style="font-size:11px">
-            (S/{{ "%.2f"|format(d['monto']) }} × {{ pct }}%) / {{ proj['cantidad_mensual'] }}
-          </td>
-          <td class="td-right td-mono">S/ {{ "%.4f"|format(d['valor_plato']) }}</td>
-        </tr>
-        {% endfor %}
-        <tr style="background:var(--bg)">
-          <td colspan="2" class="td-bold">= TOTAL GA</td>
-          <td class="td-right td-mono td-bold">S/ {{ "%.4f"|format(ga) }}</td>
-        </tr>
+      <tr class="er-section"><td colspan="3">5. Gastos de Ventas (incluye VENTAS)</td></tr>
+      {% for d in gv_detalle %}<tr><td>{{ d['concepto'] }}</td><td class="text-muted">{{ d['categoria'] if d['categoria'] else 'GENERAL' }}{% if d['automatico'] %} | automatico{% endif %}</td><td class="td-right td-mono">S/ {{ "%.4f"|format(d['valor_plato']) }}</td></tr>{% endfor %}
+      <tr><td colspan="2" class="td-bold">Total GV</td><td class="td-right td-mono td-bold">S/ {{ "%.4f"|format(gv) }}</td></tr>
 
-        <!-- Gastos Ventas -->
-        <tr class="er-section"><td colspan="3">5. GASTOS DE VENTAS (GV)</td></tr>
-        {% for d in gv_detalle %}
-        <tr>
-          <td style="padding-left:28px">{{ d['concepto'] }}</td>
-          <td class="text-muted td-mono" style="font-size:11px">
-            (S/{{ "%.2f"|format(d['monto']) }} × {{ pct }}%) / {{ proj['cantidad_mensual'] }}
-          </td>
-          <td class="td-right td-mono">S/ {{ "%.4f"|format(d['valor_plato']) }}</td>
-        </tr>
-        {% endfor %}
-        <tr style="background:var(--bg)">
-          <td colspan="2" class="td-bold">= TOTAL GV</td>
-          <td class="td-right td-mono td-bold">S/ {{ "%.4f"|format(gv) }}</td>
-        </tr>
+      <tr class="er-section"><td colspan="3">6. Gastos Financieros</td></tr>
+      {% for d in gf_detalle %}<tr><td>{{ d['concepto'] }}</td><td></td><td class="td-right td-mono">S/ {{ "%.4f"|format(d['valor_plato']) }}</td></tr>{% endfor %}
+      <tr><td colspan="2" class="td-bold">Total GF</td><td class="td-right td-mono td-bold">S/ {{ "%.4f"|format(gf) }}</td></tr>
 
-        <!-- Gastos Financieros -->
-        <tr class="er-section"><td colspan="3">6. GASTOS FINANCIEROS (GF)</td></tr>
-        {% for d in gf_detalle %}
-        <tr>
-          <td style="padding-left:28px">{{ d['concepto'] }}</td>
-          <td class="text-muted td-mono" style="font-size:11px">
-            (S/{{ "%.2f"|format(d['monto']) }} × {{ pct }}%) / {{ proj['cantidad_mensual'] }}
-          </td>
-          <td class="td-right td-mono">S/ {{ "%.4f"|format(d['valor_plato']) }}</td>
-        </tr>
-        {% endfor %}
-        <tr style="background:var(--bg)">
-          <td colspan="2" class="td-bold">= TOTAL GF</td>
-          <td class="td-right td-mono td-bold">S/ {{ "%.4f"|format(gf) }}</td>
-        </tr>
-
-        <!-- Resumen final -->
-        <tr class="er-total" style="background:#f0ede8;border-top:2px solid var(--border)">
-          <td colspan="2">= COSTO TOTAL</td>
-          <td class="td-right td-mono">S/ {{ "%.4f"|format(costo_total) }}</td>
-        </tr>
-
-        <tr>
-          <td style="padding-left:28px">Utilidad deseada ({{ utilidad_pct }}%)</td>
-          <td class="text-muted td-mono" style="font-size:11px">
-            S/{{ "%.4f"|format(costo_total) }} × {{ utilidad_pct }}%
-          </td>
-          <td class="td-right td-mono text-success">S/ {{ "%.4f"|format(utilidad_s) }}</td>
-        </tr>
-
-        <tr class="er-highlight">
-          <td colspan="2">= VALOR DE VENTA</td>
-          <td class="td-right td-mono">S/ {{ "%.4f"|format(valor_venta) }}</td>
-        </tr>
-
-        <tr>
-          <td style="padding-left:28px">IGV (10%)</td>
-          <td class="text-muted td-mono" style="font-size:11px">
-            S/{{ "%.4f"|format(valor_venta) }} × 10%
-          </td>
-          <td class="td-right td-mono">S/ {{ "%.4f"|format(igv) }}</td>
-        </tr>
-
-        <tr class="er-price">
-          <td colspan="2">🏷 PRECIO FINAL AL PÚBLICO</td>
-          <td class="td-right td-mono" style="font-size:18px">S/ {{ "%.2f"|format(precio_final) }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<div class="flex gap-8 mt-24" style="flex-wrap:wrap">
-  <a href="{{ url_for('recetas') }}" class="btn btn-secondary">Ver Receta</a>
-  <a href="{{ url_for('proyeccion') }}" class="btn btn-secondary">Ver Proyección</a>
-  <a href="{{ url_for('productividad') }}" class="btn btn-secondary">Ver Productividad</a>
+      <tr class="er-total"><td colspan="2">Costo total</td><td class="td-right td-mono">S/ {{ "%.4f"|format(costo_total) }}</td></tr>
+      <tr><td>Utilidad</td><td>{{ utilidad_pct }}%</td><td class="td-right td-mono">S/ {{ "%.4f"|format(utilidad_s) }}</td></tr>
+      <tr class="er-highlight"><td colspan="2">Valor de venta</td><td class="td-right td-mono">S/ {{ "%.4f"|format(valor_venta) }}</td></tr>
+      <tr><td>IGV</td><td>{{ igv_pct }}%</td><td class="td-right td-mono">S/ {{ "%.4f"|format(igv) }}</td></tr>
+      <tr class="er-price"><td colspan="2">Precio final al publico</td><td class="td-right td-mono">S/ {{ "%.2f"|format(precio_final) }}</td></tr>
+    </tbody>
+  </table></div>
 </div>
 {% endblock %}

@@ -58,6 +58,10 @@
         <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         Productividad / MOD
       </a>
+      <a href="{{ url_for('estudios_tiempo_index') }}" class="nav-link {% if request.endpoint in ['estudios_tiempo','estudios_tiempo_index'] %}active{% endif %}">
+        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l2 2M5 3h14M5 21h14M7 3c0 5 10 5 10 10s-10 5-10 10"/></svg>
+        Estudios Tiempo
+      </a>
 
       <div class="nav-section" style="margin-top:8px">Costos</div>
       <a href="{{ url_for('costos_indirectos') }}" class="nav-link {% if request.endpoint == 'costos_indirectos' %}active{% endif %}">
@@ -79,6 +83,16 @@
       <a href="{{ url_for('gastos_financieros') }}" class="nav-link {% if request.endpoint == 'gastos_financieros' %}active{% endif %}">
         <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         G. Financieros
+      </a>
+
+      <div class="nav-section" style="margin-top:8px">Sistema</div>
+      <a href="{{ url_for('configuracion') }}" class="nav-link {% if request.endpoint == 'configuracion' %}active{% endif %}">
+        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2"/></svg>
+        Configuracion
+      </a>
+      <a href="{{ url_for('ayuda') }}" class="nav-link {% if request.endpoint == 'ayuda' %}active{% endif %}">
+        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10a4 4 0 118 0c0 3-4 3-4 6m0 4h.01"/></svg>
+        Ayuda
       </a>
     </nav>
   </aside>

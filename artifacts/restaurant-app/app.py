@@ -1,15 +1,17 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, g
 import os
-from database import (
-    get_db, init_db,
+from database import get_db, init_db
+from calculos import (
     calcular_depreciacion_mensual, calcular_pct_participacion,
-    cif_por_plato, mod_por_plato, mp_por_plato, gastos_por_plato
+    cif_por_plato, mod_por_plato, mp_por_plato, gastos_por_plato,
+    calcular_planilla_por_clasificacion, obtener_configuracion,
+    calcular_estado_resultados, tiempo_real_por_plato
 )
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "restaurant-secret-2025")
 
-PORT = int(os.environ.get("PORT", 5001))
+PORT = int(os.environ.get("PORT", 5000))
 
 
 @app.before_request
@@ -135,7 +137,12 @@ def plato_editar(pid):
 @app.route("/ingredientes")
 def ingredientes():
     db = g.db
-    items = db.execute("SELECT * FROM ingredientes ORDER BY nombre").fetchall()
+    items = db.execute("""
+        SELECT i.*, c.equivalencia, c.unidad_uso, c.factor_conversion
+        FROM ingredientes i
+        LEFT JOIN conversiones c ON c.ingrediente_id = i.id
+        ORDER BY i.nombre
+    """).fetchall()
     return render_template("ingredientes.html", ingredientes=items)
 
 
@@ -145,13 +152,16 @@ def ingrediente_nuevo():
     nombre = request.form.get("nombre", "").strip()
     costo = float(request.form.get("costo_compra", 0))
     unidad = request.form.get("unidad_compra", "kg").strip()
+    unidad_medida = request.form.get("unidad_medida", unidad).strip()
+    rendimiento = float(request.form.get("rendimiento", 0) or 0)
     equiv = float(request.form.get("equivalencia", 1000))
     unidad_uso = request.form.get("unidad_uso", "g").strip()
+    factor = float(request.form.get("factor_conversion", equiv) or equiv)
     if nombre:
-        cur = db.execute("INSERT INTO ingredientes (nombre, costo_compra, unidad_compra) VALUES (?,?,?)",
-                         (nombre, costo, unidad))
-        db.execute("INSERT INTO conversiones (ingrediente_id, equivalencia, unidad_uso) VALUES (?,?,?)",
-                   (cur.lastrowid, equiv, unidad_uso))
+        cur = db.execute("INSERT INTO ingredientes (nombre, costo_compra, unidad_compra, unidad_medida, rendimiento) VALUES (?,?,?,?,?)",
+                         (nombre, costo, unidad, unidad_medida, rendimiento or equiv))
+        db.execute("INSERT INTO conversiones (ingrediente_id, equivalencia, unidad_uso, factor_conversion) VALUES (?,?,?,?)",
+                   (cur.lastrowid, equiv, unidad_uso, factor))
         db.commit()
         flash("Ingrediente creado.", "success")
     return redirect(url_for("ingredientes"))
@@ -163,8 +173,20 @@ def ingrediente_editar(iid):
     nombre = request.form.get("nombre", "").strip()
     costo = float(request.form.get("costo_compra", 0))
     unidad = request.form.get("unidad_compra", "kg").strip()
-    db.execute("UPDATE ingredientes SET nombre=?, costo_compra=?, unidad_compra=? WHERE id=?",
-               (nombre, costo, unidad, iid))
+    unidad_medida = request.form.get("unidad_medida", unidad).strip()
+    rendimiento = float(request.form.get("rendimiento", 0) or 0)
+    equiv = float(request.form.get("equivalencia", 1000) or 1000)
+    unidad_uso = request.form.get("unidad_uso", "g").strip()
+    factor = float(request.form.get("factor_conversion", equiv) or equiv)
+    db.execute("UPDATE ingredientes SET nombre=?, costo_compra=?, unidad_compra=?, unidad_medida=?, rendimiento=? WHERE id=?",
+               (nombre, costo, unidad, unidad_medida, rendimiento or equiv, iid))
+    existing = db.execute("SELECT id FROM conversiones WHERE ingrediente_id = ?", (iid,)).fetchone()
+    if existing:
+        db.execute("UPDATE conversiones SET equivalencia=?, unidad_uso=?, factor_conversion=? WHERE ingrediente_id=?",
+                   (equiv, unidad_uso, factor, iid))
+    else:
+        db.execute("INSERT INTO conversiones (ingrediente_id, equivalencia, unidad_uso, factor_conversion) VALUES (?,?,?,?)",
+                   (iid, equiv, unidad_uso, factor))
     db.commit()
     flash("Ingrediente actualizado.", "success")
     return redirect(url_for("ingredientes"))
@@ -256,7 +278,9 @@ def empleados():
         e["sueldo_base"] + e["gratificaciones"] + e["bonificaciones"] + e["seguro"] + e["cts"]
         for e in items
     )
-    return render_template("empleados.html", empleados=items, planilla_total=planilla_total)
+    subtotales = calcular_planilla_por_clasificacion(db)
+    return render_template("empleados.html", empleados=items, planilla_total=planilla_total,
+                           subtotales=subtotales)
 
 
 @app.route("/empleados/nuevo", methods=["POST"])
@@ -269,9 +293,10 @@ def empleado_nuevo():
     bonif = float(request.form.get("bonificaciones", 0))
     seguro = float(request.form.get("seguro", 0))
     cts = float(request.form.get("cts", 0))
+    clasificacion = request.form.get("clasificacion", "MOD")
     if nombre:
-        db.execute("INSERT INTO empleados (nombre, cargo, sueldo_base, gratificaciones, bonificaciones, seguro, cts) VALUES (?,?,?,?,?,?,?)",
-                   (nombre, cargo, sueldo_base, gratif, bonif, seguro, cts))
+        db.execute("INSERT INTO empleados (nombre, cargo, sueldo_base, gratificaciones, bonificaciones, seguro, cts, clasificacion) VALUES (?,?,?,?,?,?,?,?)",
+                   (nombre, cargo, sueldo_base, gratif, bonif, seguro, cts, clasificacion))
         db.commit()
         flash("Empleado registrado.", "success")
     return redirect(url_for("empleados"))
@@ -287,8 +312,9 @@ def empleado_editar(eid):
     bonif = float(request.form.get("bonificaciones", 0))
     seguro = float(request.form.get("seguro", 0))
     cts = float(request.form.get("cts", 0))
-    db.execute("UPDATE empleados SET nombre=?, cargo=?, sueldo_base=?, gratificaciones=?, bonificaciones=?, seguro=?, cts=? WHERE id=?",
-               (nombre, cargo, sueldo_base, gratif, bonif, seguro, cts, eid))
+    clasificacion = request.form.get("clasificacion", "MOD")
+    db.execute("UPDATE empleados SET nombre=?, cargo=?, sueldo_base=?, gratificaciones=?, bonificaciones=?, seguro=?, cts=?, clasificacion=? WHERE id=?",
+               (nombre, cargo, sueldo_base, gratif, bonif, seguro, cts, clasificacion, eid))
     db.commit()
     flash("Empleado actualizado.", "success")
     return redirect(url_for("empleados"))
@@ -310,16 +336,17 @@ def productividad():
     db = g.db
     platos = db.execute("SELECT * FROM platos").fetchall()
     prod_map = {r["plato_id"]: r for r in db.execute("SELECT * FROM produccion_empleado").fetchall()}
-    planilla_total = db.execute(
-        "SELECT SUM(sueldo_base+gratificaciones+bonificaciones+seguro+cts) AS total FROM empleados"
-    ).fetchone()["total"] or 0
+    subtotales = calcular_planilla_por_clasificacion(db)
+    planilla_total = subtotales["MOD"]
     mod_data = []
     for p in platos:
         pr = prod_map.get(p["id"])
         mod, costo_min = mod_por_plato(db, p["id"])
-        mod_data.append({"plato": p, "prod": pr, "mod": mod, "costo_min": costo_min})
+        tiempo_real = tiempo_real_por_plato(db, p["id"])
+        mod_data.append({"plato": p, "prod": pr, "mod": mod, "costo_min": costo_min, "tiempo_real": tiempo_real})
     return render_template("productividad.html", platos=platos, prod_map=prod_map,
-                           planilla_total=planilla_total, mod_data=mod_data)
+                           planilla_total=planilla_total, mod_data=mod_data,
+                           subtotales=subtotales)
 
 
 @app.route("/productividad/guardar", methods=["POST"])
@@ -332,6 +359,7 @@ def productividad_guardar():
         dias = request.form.get(f"dias_{pid}")
         horas = request.form.get(f"horas_{pid}")
         prod = request.form.get(f"productividad_{pid}")
+        usar_tiempo_real = 1 if request.form.get(f"usar_tiempo_real_{pid}") else 0
         if not all([minutos, dias, horas, prod]):
             continue
         try:
@@ -346,14 +374,78 @@ def productividad_guardar():
             continue
         existing = db.execute("SELECT id FROM produccion_empleado WHERE plato_id = ?", (pid,)).fetchone()
         if existing:
-            db.execute("UPDATE produccion_empleado SET minutos_por_plato=?, dias_laborables=?, horas_por_dia=?, productividad=? WHERE plato_id=?",
-                       (minutos, dias, horas, prod_val, pid))
+            db.execute("UPDATE produccion_empleado SET minutos_por_plato=?, dias_laborables=?, horas_por_dia=?, productividad=?, usar_tiempo_real=? WHERE plato_id=?",
+                       (minutos, dias, horas, prod_val, usar_tiempo_real, pid))
         else:
-            db.execute("INSERT INTO produccion_empleado (plato_id, minutos_por_plato, dias_laborables, horas_por_dia, productividad) VALUES (?,?,?,?,?)",
-                       (pid, minutos, dias, horas, prod_val))
+            db.execute("INSERT INTO produccion_empleado (plato_id, minutos_por_plato, dias_laborables, horas_por_dia, productividad, usar_tiempo_real) VALUES (?,?,?,?,?,?)",
+                       (pid, minutos, dias, horas, prod_val, usar_tiempo_real))
     db.commit()
     flash("Parámetros de productividad guardados.", "success")
     return redirect(url_for("productividad"))
+
+
+@app.route("/estudios-tiempo/<int:plato_id>")
+def estudios_tiempo(plato_id):
+    db = g.db
+    plato = db.execute("SELECT * FROM platos WHERE id = ?", (plato_id,)).fetchone()
+    if not plato:
+        flash("Plato no encontrado.", "danger")
+        return redirect(url_for("productividad"))
+    empleados = db.execute("SELECT * FROM empleados ORDER BY nombre").fetchall()
+    tareas = db.execute("""
+        SELECT et.*, e.nombre AS empleado
+        FROM estudios_tiempo et
+        LEFT JOIN empleados e ON e.id = et.empleado_id
+        WHERE et.plato_id = ?
+        ORDER BY et.fecha_registro, et.id
+    """, (plato_id,)).fetchall()
+    total_tiempo = sum(t["tiempo_observado"] for t in tareas)
+    prod = db.execute("SELECT * FROM produccion_empleado WHERE plato_id = ?", (plato_id,)).fetchone()
+    return render_template("estudios_tiempo.html", plato=plato, empleados=empleados,
+                           tareas=tareas, total_tiempo=total_tiempo, prod=prod)
+
+
+@app.route("/estudios-tiempo")
+def estudios_tiempo_index():
+    db = g.db
+    plato = db.execute("SELECT id FROM platos ORDER BY id LIMIT 1").fetchone()
+    if not plato:
+        flash("Primero registra un plato.", "warning")
+        return redirect(url_for("platos"))
+    return redirect(url_for("estudios_tiempo", plato_id=plato["id"]))
+
+
+@app.route("/estudios-tiempo/<int:plato_id>/nuevo", methods=["POST"])
+def estudio_tiempo_nuevo(plato_id):
+    db = g.db
+    tarea = request.form.get("tarea", "").strip()
+    empleado_id = request.form.get("empleado_id") or None
+    tiempo = float(request.form.get("tiempo_observado", 0) or 0)
+    fecha = request.form.get("fecha_registro", "2025-01-01")
+    notas = request.form.get("notas", "").strip()
+    if tarea and tiempo > 0:
+        db.execute(
+            "INSERT INTO estudios_tiempo (plato_id, tarea, empleado_id, tiempo_observado, fecha_registro, notas) VALUES (?,?,?,?,?,?)",
+            (plato_id, tarea, empleado_id, tiempo, fecha, notas),
+        )
+        db.commit()
+        flash("Toma de tiempo registrada.", "success")
+    return redirect(url_for("estudios_tiempo", plato_id=plato_id))
+
+
+@app.route("/estudios-tiempo/<int:plato_id>/toggle", methods=["POST"])
+def estudio_tiempo_toggle(plato_id):
+    db = g.db
+    usar = 1 if request.form.get("usar_tiempo_real") else 0
+    existing = db.execute("SELECT id FROM produccion_empleado WHERE plato_id = ?", (plato_id,)).fetchone()
+    if existing:
+        db.execute("UPDATE produccion_empleado SET usar_tiempo_real=? WHERE plato_id=?", (usar, plato_id))
+    else:
+        db.execute("INSERT INTO produccion_empleado (plato_id, minutos_por_plato, dias_laborables, horas_por_dia, productividad, usar_tiempo_real) VALUES (?,?,?,?,?,?)",
+                   (plato_id, 20, 26, 10, 85, usar))
+    db.commit()
+    flash("Modo de tiempo actualizado.", "success")
+    return redirect(url_for("estudios_tiempo", plato_id=plato_id))
 
 
 # ─── CIF ──────────────────────────────────────────────────────────────────────
@@ -361,9 +453,16 @@ def productividad_guardar():
 @app.route("/costos-indirectos")
 def costos_indirectos():
     db = g.db
-    items = db.execute("SELECT * FROM costos_indirectos").fetchall()
+    items = db.execute("SELECT * FROM costos_indirectos ORDER BY categoria, prioridad DESC, concepto").fetchall()
     total = sum(i["monto"] for i in items)
-    return render_template("costos_indirectos.html", items=items, total=total)
+    subtotales = {}
+    for item in items:
+        subtotales[item["categoria"]] = subtotales.get(item["categoria"], 0) + item["monto"]
+    total_dep, _ = calcular_depreciacion_mensual(db)
+    planillas = calcular_planilla_por_clasificacion(db)
+    return render_template("costos_indirectos.html", items=items, total=total,
+                           subtotales=subtotales, total_dep=total_dep,
+                           planilla_moi=planillas["MOI"])
 
 
 @app.route("/costos-indirectos/nuevo", methods=["POST"])
@@ -371,8 +470,11 @@ def cif_nuevo():
     db = g.db
     concepto = request.form.get("concepto", "").strip()
     monto = float(request.form.get("monto", 0))
+    categoria = request.form.get("categoria", "GENERAL")
+    prioridad = int(request.form.get("prioridad", 0) or 0)
     if concepto:
-        db.execute("INSERT INTO costos_indirectos (concepto, monto) VALUES (?,?)", (concepto, monto))
+        db.execute("INSERT INTO costos_indirectos (concepto, monto, categoria, prioridad) VALUES (?,?,?,?)",
+                   (concepto, monto, categoria, prioridad))
         db.commit()
         flash("CIF agregado.", "success")
     return redirect(url_for("costos_indirectos"))
@@ -383,7 +485,10 @@ def cif_editar(cid):
     db = g.db
     concepto = request.form.get("concepto", "").strip()
     monto = float(request.form.get("monto", 0))
-    db.execute("UPDATE costos_indirectos SET concepto=?, monto=? WHERE id=?", (concepto, monto, cid))
+    categoria = request.form.get("categoria", "GENERAL")
+    prioridad = int(request.form.get("prioridad", 0) or 0)
+    db.execute("UPDATE costos_indirectos SET concepto=?, monto=?, categoria=?, prioridad=? WHERE id=?",
+               (concepto, monto, categoria, prioridad, cid))
     db.commit()
     flash("CIF actualizado.", "success")
     return redirect(url_for("costos_indirectos"))
@@ -453,9 +558,12 @@ def activo_eliminar(aid):
 @app.route("/gastos-admin")
 def gastos_admin():
     db = g.db
-    items = db.execute("SELECT * FROM gastos_admin").fetchall()
+    items = db.execute("SELECT * FROM gastos_admin ORDER BY categoria, concepto").fetchall()
     total = sum(i["monto"] for i in items)
-    return render_template("gastos_admin.html", items=items, total=total)
+    planilla_admin = calcular_planilla_por_clasificacion(db)["ADMIN"]
+    total_con_planilla = total + planilla_admin
+    return render_template("gastos_admin.html", items=items, total=total,
+                           planilla_admin=planilla_admin, total_con_planilla=total_con_planilla)
 
 
 @app.route("/gastos-admin/nuevo", methods=["POST"])
@@ -463,8 +571,10 @@ def ga_nuevo():
     db = g.db
     concepto = request.form.get("concepto", "").strip()
     monto = float(request.form.get("monto", 0))
+    categoria = request.form.get("categoria", "GENERAL")
     if concepto:
-        db.execute("INSERT INTO gastos_admin (concepto, monto) VALUES (?,?)", (concepto, monto))
+        db.execute("INSERT INTO gastos_admin (concepto, monto, categoria) VALUES (?,?,?)",
+                   (concepto, monto, categoria))
         db.commit()
         flash("Gasto administrativo agregado.", "success")
     return redirect(url_for("gastos_admin"))
@@ -475,7 +585,9 @@ def ga_editar(gid):
     db = g.db
     concepto = request.form.get("concepto", "").strip()
     monto = float(request.form.get("monto", 0))
-    db.execute("UPDATE gastos_admin SET concepto=?, monto=? WHERE id=?", (concepto, monto, gid))
+    categoria = request.form.get("categoria", "GENERAL")
+    db.execute("UPDATE gastos_admin SET concepto=?, monto=?, categoria=? WHERE id=?",
+               (concepto, monto, categoria, gid))
     db.commit()
     flash("Gasto actualizado.", "success")
     return redirect(url_for("gastos_admin"))
@@ -495,9 +607,12 @@ def ga_eliminar(gid):
 @app.route("/gastos-ventas")
 def gastos_ventas():
     db = g.db
-    items = db.execute("SELECT * FROM gastos_ventas").fetchall()
+    items = db.execute("SELECT * FROM gastos_ventas ORDER BY categoria, concepto").fetchall()
     total = sum(i["monto"] for i in items)
-    return render_template("gastos_ventas.html", items=items, total=total)
+    planilla_ventas = calcular_planilla_por_clasificacion(db)["VENTAS"]
+    total_con_planilla = total + planilla_ventas
+    return render_template("gastos_ventas.html", items=items, total=total,
+                           planilla_ventas=planilla_ventas, total_con_planilla=total_con_planilla)
 
 
 @app.route("/gastos-ventas/nuevo", methods=["POST"])
@@ -505,8 +620,10 @@ def gv_nuevo():
     db = g.db
     concepto = request.form.get("concepto", "").strip()
     monto = float(request.form.get("monto", 0))
+    categoria = request.form.get("categoria", "GENERAL")
     if concepto:
-        db.execute("INSERT INTO gastos_ventas (concepto, monto) VALUES (?,?)", (concepto, monto))
+        db.execute("INSERT INTO gastos_ventas (concepto, monto, categoria) VALUES (?,?,?)",
+                   (concepto, monto, categoria))
         db.commit()
         flash("Gasto de ventas agregado.", "success")
     return redirect(url_for("gastos_ventas"))
@@ -517,7 +634,9 @@ def gv_editar(gid):
     db = g.db
     concepto = request.form.get("concepto", "").strip()
     monto = float(request.form.get("monto", 0))
-    db.execute("UPDATE gastos_ventas SET concepto=?, monto=? WHERE id=?", (concepto, monto, gid))
+    categoria = request.form.get("categoria", "GENERAL")
+    db.execute("UPDATE gastos_ventas SET concepto=?, monto=?, categoria=? WHERE id=?",
+               (concepto, monto, categoria, gid))
     db.commit()
     flash("Gasto actualizado.", "success")
     return redirect(url_for("gastos_ventas"))
@@ -572,6 +691,32 @@ def gf_eliminar(gid):
     db.commit()
     flash("Gasto eliminado.", "success")
     return redirect(url_for("gastos_financieros"))
+
+
+@app.route("/configuracion", methods=["GET", "POST"])
+def configuracion():
+    db = g.db
+    if request.method == "POST":
+        for clave in ["nombre_negocio", "igv_pct", "moneda", "sector"]:
+            valor = request.form.get(clave, "").strip()
+            db.execute("UPDATE configuracion SET valor=? WHERE clave=?", (valor, clave))
+        db.commit()
+        flash("Configuracion actualizada.", "success")
+        return redirect(url_for("configuracion"))
+    config = obtener_configuracion(db)
+    return render_template("configuracion.html", config=config)
+
+
+@app.route("/ayuda")
+def ayuda():
+    modulos = [
+        ("Inventario", "La materia prima usa rendimiento para reflejar merma: costo unitario real = costo compra / rendimiento util."),
+        ("Mano de obra", "La planilla MOD calcula costo por minuto. MOI se distribuye como CIF; ADMIN y VENTAS se suman a sus gastos."),
+        ("Tiempos", "Cada plato puede usar minutos teoricos o suma de estudios de tiempo reales."),
+        ("CIF", "CIF incluye costos manuales, depreciacion de activos y planilla MOI."),
+        ("Estado de Resultados", "Precio final = costo total + utilidad + IGV configurado."),
+    ]
+    return render_template("ayuda.html", modulos=modulos)
 
 
 # ─── Kardex ───────────────────────────────────────────────────────────────────
@@ -639,19 +784,7 @@ def resultado(plato_id):
     pcts = calcular_pct_participacion(db)
     pct = pcts.get(plato_id, 0)
 
-    mp, mp_detalle = mp_por_plato(db, plato_id)
-    mod, costo_min = mod_por_plato(db, plato_id)
-    cif, cif_detalle = cif_por_plato(db, plato_id)
-    ga, ga_detalle = gastos_por_plato(db, "gastos_admin", plato_id)
-    gv, gv_detalle = gastos_por_plato(db, "gastos_ventas", plato_id)
-    gf, gf_detalle = gastos_por_plato(db, "gastos_financieros", plato_id)
-
-    costo_produccion = round(mp + mod + cif, 4)
-    costo_total = round(costo_produccion + ga + gv + gf, 4)
-    utilidad_s = round(costo_total * (utilidad_pct / 100), 4)
-    valor_venta = round(costo_total + utilidad_s, 4)
-    igv = round(valor_venta * 0.10, 4)
-    precio_final = round(valor_venta * 1.10, 4)
+    er = calcular_estado_resultados(db, plato_id, utilidad_pct)
 
     prod = db.execute("SELECT * FROM produccion_empleado WHERE plato_id = ?", (plato_id,)).fetchone()
 
@@ -659,19 +792,21 @@ def resultado(plato_id):
                            plato=plato,
                            proj=proj,
                            pct=round(pct * 100, 4),
-                           mp=mp, mp_detalle=mp_detalle,
-                           mod=mod, costo_min=costo_min, prod=prod,
-                           cif=cif, cif_detalle=cif_detalle,
-                           ga=ga, ga_detalle=ga_detalle,
-                           gv=gv, gv_detalle=gv_detalle,
-                           gf=gf, gf_detalle=gf_detalle,
-                           costo_produccion=costo_produccion,
-                           costo_total=costo_total,
+                           mp=er["mp"], mp_detalle=er["mp_detalle"],
+                           mod=er["mod"], costo_min=er["costo_min"], prod=prod,
+                           cif=er["cif"], cif_detalle=er["cif_detalle"],
+                           ga=er["ga"], ga_detalle=er["ga_detalle"],
+                           gv=er["gv"], gv_detalle=er["gv_detalle"],
+                           gf=er["gf"], gf_detalle=er["gf_detalle"],
+                           costo_produccion=er["costo_produccion"],
+                           costo_total=er["costo_total"],
                            utilidad_pct=utilidad_pct,
-                           utilidad_s=utilidad_s,
-                           valor_venta=valor_venta,
-                           igv=igv,
-                           precio_final=precio_final)
+                           utilidad_s=er["utilidad_s"],
+                           valor_venta=er["valor_venta"],
+                           igv=er["igv"],
+                           igv_pct=er["igv_pct"],
+                           precio_final=er["precio_final"],
+                           config=er["config"])
 
 
 if __name__ == "__main__":

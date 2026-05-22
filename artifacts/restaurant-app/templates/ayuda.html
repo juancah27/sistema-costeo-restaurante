@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Ayuda{% endblock %}
+{% block header_title %}Ayuda y Logica de Calculo{% endblock %}
+{% block content %}
+<div class="page-header"><div><div class="page-title">Ayuda</div><div class="page-sub">Resumen de la logica contable y operativa</div></div></div>
+{% for titulo, texto in modulos %}
+<div class="card mb-16"><div class="card-header"><span class="card-title">{{ titulo }}</span></div><div class="card-body">{{ texto }}</div></div>
+{% endfor %}
+{% endblock %}

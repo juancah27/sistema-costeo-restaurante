@@ -1,81 +1,39 @@
 {% extends "base.html" %}
 {% block title %}CIF{% endblock %}
-{% block header_title %}Costos Indirectos de Fabricación{% endblock %}
+{% block header_title %}Costos Indirectos de Fabricacion{% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <div>
-    <div class="page-title">CIF — Costos Indirectos</div>
-    <div class="page-sub">Conceptos distribuidos por % de participación entre platos</div>
-  </div>
+<div class="page-header"><div><div class="page-title">CIF</div><div class="page-sub">Incluye conceptos manuales, depreciacion y MOI</div></div></div>
+<div class="stats-grid mb-24">
+  <div class="stat-card"><div class="stat-label">CIF manual</div><div class="stat-value">S/ {{ "%.2f"|format(total) }}</div></div>
+  <div class="stat-card"><div class="stat-label">Depreciacion</div><div class="stat-value">S/ {{ "%.2f"|format(total_dep) }}</div></div>
+  <div class="stat-card"><div class="stat-label">Planilla MOI</div><div class="stat-value">S/ {{ "%.2f"|format(planilla_moi) }}</div></div>
 </div>
-
-<div class="card mb-24">
-  <div class="card-header"><span class="card-title">Nuevo Concepto CIF</span></div>
-  <div class="card-body">
-    <form method="POST" action="{{ url_for('cif_nuevo') }}">
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Concepto</label>
-          <input type="text" name="concepto" required placeholder="Ej. Energía eléctrica">
-        </div>
-        <div class="form-group">
-          <label>Monto mensual (S/)</label>
-          <input type="number" name="monto" step="0.01" min="0" required placeholder="0.00">
-        </div>
-        <div class="form-group" style="align-self:end">
-          <button type="submit" class="btn btn-primary">Agregar</button>
-        </div>
-      </div>
-    </form>
-  </div>
-</div>
-
-<div class="card">
-  <div class="card-header">
-    <span class="card-title">Conceptos CIF Manuales</span>
-    <span class="badge badge-muted">Total: S/ {{ "%.2f"|format(total) }}</span>
-  </div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr><th>Concepto</th><th class="td-right">Monto Mensual</th><th class="td-center">Acciones</th></tr>
-      </thead>
-      <tbody>
-        {% for item in items %}
-        <tr>
-          <td class="td-bold">{{ item['concepto'] }}</td>
-          <td class="td-right td-mono">S/ {{ "%.2f"|format(item['monto']) }}</td>
-          <td class="td-center">
-            <button class="btn btn-ghost btn-sm" data-edit-toggle="cif-{{ item['id'] }}">Editar</button>
-            <form method="POST" action="{{ url_for('cif_eliminar', cid=item['id']) }}"
-                  style="display:inline" data-confirm="¿Eliminar este concepto CIF?">
-              <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
-            </form>
-          </td>
-        </tr>
-        <tr class="edit-form-row" id="edit-cif-{{ item['id'] }}">
-          <td colspan="3">
-            <form method="POST" action="{{ url_for('cif_editar', cid=item['id']) }}">
-              <div class="form-grid">
-                <div class="form-group"><label>Concepto</label><input type="text" name="concepto" value="{{ item['concepto'] }}" required></div>
-                <div class="form-group"><label>Monto (S/)</label><input type="number" name="monto" step="0.01" value="{{ item['monto'] }}" required></div>
-                <div class="form-group" style="align-self:end"><button type="submit" class="btn btn-primary btn-sm">Guardar</button></div>
-              </div>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-      <tfoot>
-        <tr><td>TOTAL CIF MANUAL</td><td class="td-right td-mono">S/ {{ "%.2f"|format(total) }}</td><td></td></tr>
-      </tfoot>
-    </table>
-  </div>
-</div>
-
-<div class="alert alert-info mt-16">
-  La depreciación de activos fijos se incluye automáticamente en el CIF de cada plato según su % de participación.
-  Ver <a href="{{ url_for('activos_fijos') }}">Activos Fijos</a>.
-</div>
+<div class="card mb-24"><div class="card-header"><span class="card-title">Nuevo CIF</span></div><div class="card-body">
+  <form method="POST" action="{{ url_for('cif_nuevo') }}"><div class="form-grid">
+    <div class="form-group"><label>Concepto</label><input name="concepto" required></div>
+    <div class="form-group"><label>Monto</label><input type="number" name="monto" step="0.01" required></div>
+    <div class="form-group"><label>Categoria</label><select name="categoria"><option>SERVICIO</option><option>TASA_MUNICIPAL</option><option selected>GENERAL</option></select></div>
+    <div class="form-group"><label>Prioridad</label><select name="prioridad"><option value="0">Normal</option><option value="1">Critico</option></select></div>
+    <div class="form-group" style="align-self:end"><button class="btn btn-primary">Agregar</button></div>
+  </div></form>
+</div></div>
+<div class="card"><div class="card-header"><span class="card-title">Conceptos agrupados</span></div><div class="table-wrap"><table>
+  <thead><tr><th>Categoria</th><th>Concepto</th><th class="td-right">Monto</th><th>Prioridad</th><th>Acciones</th></tr></thead>
+  <tbody>{% for item in items %}<tr>
+    <td><span class="badge badge-muted">{{ item['categoria'] }}</span></td>
+    <td class="td-bold">{% if item['prioridad'] %}<span class="text-accent">!</span> {% endif %}{{ item['concepto'] }}</td>
+    <td class="td-right td-mono">S/ {{ "%.2f"|format(item['monto']) }}</td>
+    <td>{{ 'Critico' if item['prioridad'] else 'Normal' }}</td>
+    <td><button class="btn btn-ghost btn-sm" data-edit-toggle="cif-{{ item['id'] }}">Editar</button></td>
+  </tr>
+  <tr class="edit-form-row" id="edit-cif-{{ item['id'] }}"><td colspan="5"><form method="POST" action="{{ url_for('cif_editar', cid=item['id']) }}"><div class="form-grid">
+    <input name="concepto" value="{{ item['concepto'] }}"><input type="number" step="0.01" name="monto" value="{{ item['monto'] }}">
+    <select name="categoria">{% for c in ['SERVICIO','TASA_MUNICIPAL','GENERAL'] %}<option value="{{ c }}" {% if item['categoria']==c %}selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+    <select name="prioridad"><option value="0">Normal</option><option value="1" {% if item['prioridad'] %}selected{% endif %}>Critico</option></select>
+    <button class="btn btn-primary btn-sm">Guardar</button>
+  </div></form></td></tr>
+  {% endfor %}</tbody>
+  <tfoot>{% for cat, monto in subtotales.items() %}<tr><td colspan="2">Subtotal {{ cat }}</td><td class="td-right td-mono">S/ {{ "%.2f"|format(monto) }}</td><td colspan="2"></td></tr>{% endfor %}</tfoot>
+</table></div></div>
 {% endblock %}

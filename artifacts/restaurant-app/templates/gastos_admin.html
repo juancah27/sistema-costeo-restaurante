@@ -1,64 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Gastos Administrativos{% endblock %}
 {% block header_title %}Gastos Administrativos{% endblock %}
-
 {% block content %}
-<div class="page-header">
-  <div>
-    <div class="page-title">Gastos Administrativos</div>
-    <div class="page-sub">Distribuidos por % de participación entre platos</div>
-  </div>
-</div>
-
-<div class="card mb-24">
-  <div class="card-header"><span class="card-title">Nuevo Gasto</span></div>
-  <div class="card-body">
-    <form method="POST" action="{{ url_for('ga_nuevo') }}">
-      <div class="form-grid">
-        <div class="form-group"><label>Concepto</label><input type="text" name="concepto" required placeholder="Ej. Contador"></div>
-        <div class="form-group"><label>Monto mensual (S/)</label><input type="number" name="monto" step="0.01" min="0" required></div>
-        <div class="form-group" style="align-self:end"><button type="submit" class="btn btn-primary">Agregar</button></div>
-      </div>
-    </form>
-  </div>
-</div>
-
-<div class="card">
-  <div class="card-header">
-    <span class="card-title">Gastos Administrativos</span>
-    <span class="badge badge-muted">Total: S/ {{ "%.2f"|format(total) }}</span>
-  </div>
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Concepto</th><th class="td-right">Monto Mensual</th><th class="td-center">Acciones</th></tr></thead>
-      <tbody>
-        {% for item in items %}
-        <tr>
-          <td class="td-bold">{{ item['concepto'] }}</td>
-          <td class="td-right td-mono">S/ {{ "%.2f"|format(item['monto']) }}</td>
-          <td class="td-center">
-            <button class="btn btn-ghost btn-sm" data-edit-toggle="ga-{{ item['id'] }}">Editar</button>
-            <form method="POST" action="{{ url_for('ga_eliminar', gid=item['id']) }}"
-                  style="display:inline" data-confirm="¿Eliminar este gasto?">
-              <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
-            </form>
-          </td>
-        </tr>
-        <tr class="edit-form-row" id="edit-ga-{{ item['id'] }}">
-          <td colspan="3">
-            <form method="POST" action="{{ url_for('ga_editar', gid=item['id']) }}">
-              <div class="form-grid">
-                <div class="form-group"><label>Concepto</label><input type="text" name="concepto" value="{{ item['concepto'] }}" required></div>
-                <div class="form-group"><label>Monto (S/)</label><input type="number" name="monto" step="0.01" value="{{ item['monto'] }}" required></div>
-                <div class="form-group" style="align-self:end"><button type="submit" class="btn btn-primary btn-sm">Guardar</button></div>
-              </div>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-      <tfoot><tr><td>TOTAL</td><td class="td-right td-mono">S/ {{ "%.2f"|format(total) }}</td><td></td></tr></tfoot>
-    </table>
-  </div>
-</div>
+<div class="page-header"><div><div class="page-title">Gastos Administrativos</div><div class="page-sub">Incluye planilla ADMIN automatica</div></div></div>
+<div class="stats-grid mb-24"><div class="stat-card"><div class="stat-label">Manual</div><div class="stat-value">S/ {{ "%.2f"|format(total) }}</div></div><div class="stat-card"><div class="stat-label">Planilla ADMIN</div><div class="stat-value">S/ {{ "%.2f"|format(planilla_admin) }}</div></div><div class="stat-card"><div class="stat-label">Total</div><div class="stat-value">S/ {{ "%.2f"|format(total_con_planilla) }}</div></div></div>
+<div class="card mb-24"><div class="card-header"><span class="card-title">Nuevo Gasto</span></div><div class="card-body"><form method="POST" action="{{ url_for('ga_nuevo') }}"><div class="form-grid"><input name="concepto" required placeholder="Concepto"><input type="number" name="monto" step="0.01" required><select name="categoria"><option>GENERAL</option><option>REGULATORIO</option><option>SERVICIOS_TERCEROS</option></select><button class="btn btn-primary">Agregar</button></div></form></div></div>
+<div class="card"><div class="card-header"><span class="card-title">Gastos por categoria</span></div><div class="table-wrap"><table><thead><tr><th>Categoria</th><th>Concepto</th><th class="td-right">Monto</th></tr></thead><tbody>{% for item in items %}<tr><td><span class="badge badge-muted">{{ item['categoria'] }}</span></td><td>{{ item['concepto'] }}</td><td class="td-right td-mono">S/ {{ "%.2f"|format(item['monto']) }}</td></tr>{% endfor %}<tr><td><span class="badge badge-success">AUTO</span></td><td>Planilla personal ADMIN</td><td class="td-right td-mono">S/ {{ "%.2f"|format(planilla_admin) }}</td></tr></tbody></table></div></div>
 {% endblock %}

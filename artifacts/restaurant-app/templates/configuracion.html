@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Configuracion{% endblock %}
+{% block header_title %}Configuracion{% endblock %}
+{% block content %}
+<div class="page-header"><div><div class="page-title">Configuracion</div><div class="page-sub">Parametros generales del sistema</div></div></div>
+<div class="card"><div class="card-body"><form method="POST" action="{{ url_for('configuracion') }}"><div class="form-grid"><div class="form-group"><label>Nombre negocio</label><input name="nombre_negocio" value="{{ config['nombre_negocio'] }}"></div><div class="form-group"><label>IGV %</label><input type="number" step="0.01" name="igv_pct" value="{{ config['igv_pct'] }}"></div><div class="form-group"><label>Moneda</label><input name="moneda" value="{{ config['moneda'] }}"></div><div class="form-group"><label>Sector</label><select name="sector"><option {% if config['sector']=='RESTAURANTE' %}selected{% endif %}>RESTAURANTE</option><option {% if config['sector']=='GENERAL' %}selected{% endif %}>GENERAL</option></select></div><div class="form-group" style="align-self:end"><button class="btn btn-primary">Guardar</button></div></div></form></div></div>
+{% endblock %}
