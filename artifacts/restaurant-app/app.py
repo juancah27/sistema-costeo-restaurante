@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, g
+from flask import Flask, make_response, render_template, request, redirect, url_for, flash, g, session
 import os
+from werkzeug.security import check_password_hash, generate_password_hash
 from database import get_db, init_db
 from calculos import (
     calcular_depreciacion_mensual, calcular_pct_participacion,
@@ -7,11 +8,27 @@ from calculos import (
     calcular_planilla_por_clasificacion, obtener_configuracion,
     calcular_estado_resultados, tiempo_real_por_plato
 )
+from auth import login_requerido, permiso_requerido, verificar_permiso, tiene_permiso
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "restaurant-secret-2025")
 
 PORT = int(os.environ.get("PORT", 5000))
+
+
+def _manual_context(db):
+    config = obtener_configuracion(db)
+    schemas = db.execute(
+        """
+        SELECT name, sql
+        FROM sqlite_master
+        WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+        ORDER BY name
+        """
+    ).fetchall()
+    plato = db.execute("SELECT * FROM platos WHERE nombre = 'Lomo Saltado'").fetchone()
+    ejemplo = calcular_estado_resultados(db, plato["id"], 35) if plato else None
+    return {"config": config, "schemas": schemas, "plato": plato, "ejemplo": ejemplo}
 
 
 @app.before_request
@@ -26,9 +43,173 @@ def close_db(exc):
         db.close()
 
 
+@app.context_processor
+def inject_auth_context():
+    def puede(modulo, accion="ver"):
+        return verificar_permiso(session.get("rol"), modulo, accion)
+
+    return {
+        "usuario_actual": {
+            "id": session.get("usuario_id"),
+            "username": session.get("username"),
+            "nombre": session.get("nombre"),
+            "rol": session.get("rol"),
+        },
+        "puede": puede,
+        "tiene_permiso": lambda modulo, nivel="lectura": tiene_permiso(session.get("rol"), modulo, nivel),
+    }
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if session.get("usuario_id"):
+        return redirect(url_for("dashboard"))
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        usuario = g.db.execute("SELECT * FROM usuarios WHERE username = ?", (username,)).fetchone()
+        if not usuario or not check_password_hash(usuario["password_hash"], password):
+            flash("Credenciales incorrectas.", "danger")
+            return render_template("login.html")
+        if not usuario["activo"]:
+            flash("Su cuenta está desactivada. Contacte al administrador", "danger")
+            return render_template("login.html")
+        session.clear()
+        session.permanent = False
+        session["usuario_id"] = usuario["id"]
+        session["username"] = usuario["username"]
+        session["nombre"] = usuario["nombre_completo"]
+        session["rol"] = usuario["rol"]
+        g.db.execute("UPDATE usuarios SET ultimo_acceso = datetime('now','localtime') WHERE id = ?", (usuario["id"],))
+        g.db.commit()
+        next_url = request.args.get("next") or url_for("dashboard")
+        return redirect(next_url if next_url.startswith("/") else url_for("dashboard"))
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+
+@app.route("/usuarios")
+@login_requerido
+@permiso_requerido("usuarios", "total")
+def usuarios():
+    items = g.db.execute("SELECT * FROM usuarios ORDER BY rol, username").fetchall()
+    return render_template("usuarios.html", usuarios=items)
+
+
+@app.route("/usuarios/nuevo", methods=["POST"])
+@login_requerido
+@permiso_requerido("usuarios", "total")
+def usuario_nuevo():
+    username = request.form.get("username", "").strip()
+    password = request.form.get("password", "")
+    nombre = request.form.get("nombre_completo", "").strip()
+    rol = request.form.get("rol", "CONSULTA")
+    if len(password) < 6:
+        flash("La contraseña debe tener mínimo 6 caracteres.", "danger")
+        return redirect(url_for("usuarios"))
+    if g.db.execute("SELECT 1 FROM usuarios WHERE username = ?", (username,)).fetchone():
+        flash("El username ya existe.", "danger")
+        return redirect(url_for("usuarios"))
+    if username and nombre:
+        g.db.execute(
+            "INSERT INTO usuarios (username, password_hash, nombre_completo, rol, activo) VALUES (?,?,?,?,1)",
+            (username, generate_password_hash(password), nombre, rol),
+        )
+        g.db.commit()
+        flash("Usuario creado.", "success")
+    return redirect(url_for("usuarios"))
+
+
+@app.route("/usuarios/editar/<int:uid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("usuarios", "total")
+def usuario_editar(uid):
+    usuario = g.db.execute("SELECT * FROM usuarios WHERE id = ?", (uid,)).fetchone()
+    if not usuario:
+        flash("Usuario no encontrado.", "danger")
+        return redirect(url_for("usuarios"))
+    nombre = request.form.get("nombre_completo", "").strip()
+    rol = request.form.get("rol", usuario["rol"])
+    if uid == session.get("usuario_id") and rol != usuario["rol"]:
+        flash("No puede cambiar su propio rol.", "danger")
+        return redirect(url_for("usuarios"))
+    g.db.execute("UPDATE usuarios SET nombre_completo=?, rol=? WHERE id=?", (nombre, rol, uid))
+    g.db.commit()
+    if uid == session.get("usuario_id"):
+        session["nombre"] = nombre
+        session["rol"] = rol
+    flash("Usuario actualizado.", "success")
+    return redirect(url_for("usuarios"))
+
+
+@app.route("/usuarios/toggle/<int:uid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("usuarios", "total")
+def usuario_toggle(uid):
+    usuario = g.db.execute("SELECT * FROM usuarios WHERE id = ?", (uid,)).fetchone()
+    if not usuario:
+        flash("Usuario no encontrado.", "danger")
+    elif uid == session.get("usuario_id"):
+        flash("No puede desactivarse a sí mismo.", "danger")
+    else:
+        nuevo_estado = 0 if usuario["activo"] else 1
+        g.db.execute("UPDATE usuarios SET activo=? WHERE id=?", (nuevo_estado, uid))
+        g.db.commit()
+        flash("Estado del usuario actualizado.", "success")
+    return redirect(url_for("usuarios"))
+
+
+@app.route("/usuarios/reset/<int:uid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("usuarios", "total")
+def usuario_reset(uid):
+    password = request.form.get("password", "")
+    if len(password) < 6:
+        flash("La contraseña debe tener mínimo 6 caracteres.", "danger")
+        return redirect(url_for("usuarios"))
+    g.db.execute("UPDATE usuarios SET password_hash=? WHERE id=?", (generate_password_hash(password), uid))
+    g.db.commit()
+    flash("Contraseña reseteada.", "success")
+    return redirect(url_for("usuarios"))
+
+
+@app.route("/mi-perfil")
+@login_requerido
+def mi_perfil():
+    usuario = g.db.execute("SELECT * FROM usuarios WHERE id = ?", (session["usuario_id"],)).fetchone()
+    return render_template("mi_perfil.html", usuario=usuario)
+
+
+@app.route("/mi-perfil/password", methods=["POST"])
+@login_requerido
+def mi_perfil_password():
+    actual = request.form.get("password_actual", "")
+    nueva = request.form.get("password_nueva", "")
+    confirmar = request.form.get("password_confirmar", "")
+    usuario = g.db.execute("SELECT * FROM usuarios WHERE id = ?", (session["usuario_id"],)).fetchone()
+    if not check_password_hash(usuario["password_hash"], actual):
+        flash("La contraseña actual no coincide.", "danger")
+    elif len(nueva) < 6:
+        flash("La nueva contraseña debe tener mínimo 6 caracteres.", "danger")
+    elif nueva != confirmar:
+        flash("La confirmación no coincide.", "danger")
+    else:
+        g.db.execute("UPDATE usuarios SET password_hash=? WHERE id=?", (generate_password_hash(nueva), usuario["id"]))
+        g.db.commit()
+        flash("Contraseña actualizada.", "success")
+    return redirect(url_for("mi_perfil"))
+
+
 # ─── Dashboard ────────────────────────────────────────────────────────────────
 
 @app.route("/")
+@login_requerido
+@permiso_requerido("dashboard", "lectura")
 def dashboard():
     db = g.db
     platos = db.execute("SELECT * FROM platos").fetchall()
@@ -64,6 +245,8 @@ def dashboard():
 # ─── Proyección ───────────────────────────────────────────────────────────────
 
 @app.route("/proyeccion")
+@login_requerido
+@permiso_requerido("proyeccion", "lectura")
 def proyeccion():
     db = g.db
     platos = db.execute("SELECT * FROM platos").fetchall()
@@ -76,6 +259,8 @@ def proyeccion():
 
 
 @app.route("/proyeccion/guardar", methods=["POST"])
+@login_requerido
+@permiso_requerido("proyeccion", "total")
 def proyeccion_guardar():
     db = g.db
     platos = db.execute("SELECT id FROM platos").fetchall()
@@ -103,6 +288,8 @@ def proyeccion_guardar():
 # ─── Platos ───────────────────────────────────────────────────────────────────
 
 @app.route("/platos")
+@login_requerido
+@permiso_requerido("platos", "lectura")
 def platos():
     db = g.db
     platos = db.execute("SELECT * FROM platos").fetchall()
@@ -110,6 +297,8 @@ def platos():
 
 
 @app.route("/platos/nuevo", methods=["POST"])
+@login_requerido
+@permiso_requerido("platos", "total")
 def plato_nuevo():
     db = g.db
     nombre = request.form.get("nombre", "").strip()
@@ -122,6 +311,8 @@ def plato_nuevo():
 
 
 @app.route("/platos/editar/<int:pid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("platos", "total")
 def plato_editar(pid):
     db = g.db
     nombre = request.form.get("nombre", "").strip()
@@ -135,6 +326,8 @@ def plato_editar(pid):
 # ─── Ingredientes ─────────────────────────────────────────────────────────────
 
 @app.route("/ingredientes")
+@login_requerido
+@permiso_requerido("ingredientes", "lectura")
 def ingredientes():
     db = g.db
     items = db.execute("""
@@ -147,6 +340,8 @@ def ingredientes():
 
 
 @app.route("/ingredientes/nuevo", methods=["POST"])
+@login_requerido
+@permiso_requerido("ingredientes", "total")
 def ingrediente_nuevo():
     db = g.db
     nombre = request.form.get("nombre", "").strip()
@@ -168,6 +363,8 @@ def ingrediente_nuevo():
 
 
 @app.route("/ingredientes/editar/<int:iid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("ingredientes", "total")
 def ingrediente_editar(iid):
     db = g.db
     nombre = request.form.get("nombre", "").strip()
@@ -193,6 +390,8 @@ def ingrediente_editar(iid):
 
 
 @app.route("/ingredientes/eliminar/<int:iid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("ingredientes", "total")
 def ingrediente_eliminar(iid):
     db = g.db
     db.execute("DELETE FROM recetas WHERE ingrediente_id = ?", (iid,))
@@ -207,6 +406,8 @@ def ingrediente_eliminar(iid):
 # ─── Recetas ──────────────────────────────────────────────────────────────────
 
 @app.route("/recetas")
+@login_requerido
+@permiso_requerido("recetas", "lectura")
 def recetas():
     db = g.db
     platos = db.execute("SELECT * FROM platos").fetchall()
@@ -234,6 +435,8 @@ def recetas():
 
 
 @app.route("/recetas/nuevo", methods=["POST"])
+@login_requerido
+@permiso_requerido("recetas", "total")
 def receta_nuevo():
     db = g.db
     plato_id = int(request.form.get("plato_id", 0))
@@ -249,6 +452,8 @@ def receta_nuevo():
 
 
 @app.route("/recetas/editar/<int:rid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("recetas", "total")
 def receta_editar(rid):
     db = g.db
     cantidad = float(request.form.get("cantidad_uso", 0))
@@ -260,6 +465,8 @@ def receta_editar(rid):
 
 
 @app.route("/recetas/eliminar/<int:rid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("recetas", "total")
 def receta_eliminar(rid):
     db = g.db
     db.execute("DELETE FROM recetas WHERE id = ?", (rid,))
@@ -271,6 +478,8 @@ def receta_eliminar(rid):
 # ─── Empleados ────────────────────────────────────────────────────────────────
 
 @app.route("/empleados")
+@login_requerido
+@permiso_requerido("empleados", "lectura")
 def empleados():
     db = g.db
     items = db.execute("SELECT * FROM empleados ORDER BY cargo, nombre").fetchall()
@@ -284,6 +493,8 @@ def empleados():
 
 
 @app.route("/empleados/nuevo", methods=["POST"])
+@login_requerido
+@permiso_requerido("empleados", "total")
 def empleado_nuevo():
     db = g.db
     nombre = request.form.get("nombre", "").strip()
@@ -303,6 +514,8 @@ def empleado_nuevo():
 
 
 @app.route("/empleados/editar/<int:eid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("empleados", "total")
 def empleado_editar(eid):
     db = g.db
     nombre = request.form.get("nombre", "").strip()
@@ -321,6 +534,8 @@ def empleado_editar(eid):
 
 
 @app.route("/empleados/eliminar/<int:eid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("empleados", "total")
 def empleado_eliminar(eid):
     db = g.db
     db.execute("DELETE FROM empleados WHERE id = ?", (eid,))
@@ -332,6 +547,8 @@ def empleado_eliminar(eid):
 # ─── Productividad / MOD ──────────────────────────────────────────────────────
 
 @app.route("/productividad")
+@login_requerido
+@permiso_requerido("productividad", "lectura")
 def productividad():
     db = g.db
     platos = db.execute("SELECT * FROM platos").fetchall()
@@ -350,6 +567,8 @@ def productividad():
 
 
 @app.route("/productividad/guardar", methods=["POST"])
+@login_requerido
+@permiso_requerido("productividad", "total")
 def productividad_guardar():
     db = g.db
     platos = db.execute("SELECT id FROM platos").fetchall()
@@ -385,6 +604,8 @@ def productividad_guardar():
 
 
 @app.route("/estudios-tiempo/<int:plato_id>")
+@login_requerido
+@permiso_requerido("estudios_tiempo", "lectura")
 def estudios_tiempo(plato_id):
     db = g.db
     plato = db.execute("SELECT * FROM platos WHERE id = ?", (plato_id,)).fetchone()
@@ -406,6 +627,8 @@ def estudios_tiempo(plato_id):
 
 
 @app.route("/estudios-tiempo")
+@login_requerido
+@permiso_requerido("estudios_tiempo", "lectura")
 def estudios_tiempo_index():
     db = g.db
     plato = db.execute("SELECT id FROM platos ORDER BY id LIMIT 1").fetchone()
@@ -416,6 +639,8 @@ def estudios_tiempo_index():
 
 
 @app.route("/estudios-tiempo/<int:plato_id>/nuevo", methods=["POST"])
+@login_requerido
+@permiso_requerido("estudios_tiempo", "total")
 def estudio_tiempo_nuevo(plato_id):
     db = g.db
     tarea = request.form.get("tarea", "").strip()
@@ -434,6 +659,8 @@ def estudio_tiempo_nuevo(plato_id):
 
 
 @app.route("/estudios-tiempo/<int:plato_id>/toggle", methods=["POST"])
+@login_requerido
+@permiso_requerido("estudios_tiempo", "total")
 def estudio_tiempo_toggle(plato_id):
     db = g.db
     usar = 1 if request.form.get("usar_tiempo_real") else 0
@@ -451,6 +678,8 @@ def estudio_tiempo_toggle(plato_id):
 # ─── CIF ──────────────────────────────────────────────────────────────────────
 
 @app.route("/costos-indirectos")
+@login_requerido
+@permiso_requerido("cif", "lectura")
 def costos_indirectos():
     db = g.db
     items = db.execute("SELECT * FROM costos_indirectos ORDER BY categoria, prioridad DESC, concepto").fetchall()
@@ -466,6 +695,8 @@ def costos_indirectos():
 
 
 @app.route("/costos-indirectos/nuevo", methods=["POST"])
+@login_requerido
+@permiso_requerido("cif", "total")
 def cif_nuevo():
     db = g.db
     concepto = request.form.get("concepto", "").strip()
@@ -481,6 +712,8 @@ def cif_nuevo():
 
 
 @app.route("/costos-indirectos/editar/<int:cid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("cif", "total")
 def cif_editar(cid):
     db = g.db
     concepto = request.form.get("concepto", "").strip()
@@ -495,6 +728,8 @@ def cif_editar(cid):
 
 
 @app.route("/costos-indirectos/eliminar/<int:cid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("cif", "total")
 def cif_eliminar(cid):
     db = g.db
     db.execute("DELETE FROM costos_indirectos WHERE id = ?", (cid,))
@@ -506,6 +741,8 @@ def cif_eliminar(cid):
 # ─── Activos Fijos ────────────────────────────────────────────────────────────
 
 @app.route("/activos-fijos")
+@login_requerido
+@permiso_requerido("activos", "lectura")
 def activos_fijos():
     db = g.db
     total_dep, detalle = calcular_depreciacion_mensual(db)
@@ -514,6 +751,8 @@ def activos_fijos():
 
 
 @app.route("/activos-fijos/nuevo", methods=["POST"])
+@login_requerido
+@permiso_requerido("activos", "total")
 def activo_nuevo():
     db = g.db
     nombre = request.form.get("nombre", "").strip()
@@ -530,6 +769,8 @@ def activo_nuevo():
 
 
 @app.route("/activos-fijos/editar/<int:aid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("activos", "total")
 def activo_editar(aid):
     db = g.db
     nombre = request.form.get("nombre", "").strip()
@@ -545,6 +786,8 @@ def activo_editar(aid):
 
 
 @app.route("/activos-fijos/eliminar/<int:aid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("activos", "total")
 def activo_eliminar(aid):
     db = g.db
     db.execute("UPDATE activos_fijos SET activo = 0 WHERE id = ?", (aid,))
@@ -556,6 +799,8 @@ def activo_eliminar(aid):
 # ─── Gastos Admin ─────────────────────────────────────────────────────────────
 
 @app.route("/gastos-admin")
+@login_requerido
+@permiso_requerido("gastos_admin", "lectura")
 def gastos_admin():
     db = g.db
     items = db.execute("SELECT * FROM gastos_admin ORDER BY categoria, concepto").fetchall()
@@ -567,6 +812,8 @@ def gastos_admin():
 
 
 @app.route("/gastos-admin/nuevo", methods=["POST"])
+@login_requerido
+@permiso_requerido("gastos_admin", "total")
 def ga_nuevo():
     db = g.db
     concepto = request.form.get("concepto", "").strip()
@@ -581,6 +828,8 @@ def ga_nuevo():
 
 
 @app.route("/gastos-admin/editar/<int:gid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("gastos_admin", "total")
 def ga_editar(gid):
     db = g.db
     concepto = request.form.get("concepto", "").strip()
@@ -594,6 +843,8 @@ def ga_editar(gid):
 
 
 @app.route("/gastos-admin/eliminar/<int:gid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("gastos_admin", "total")
 def ga_eliminar(gid):
     db = g.db
     db.execute("DELETE FROM gastos_admin WHERE id = ?", (gid,))
@@ -605,6 +856,8 @@ def ga_eliminar(gid):
 # ─── Gastos Ventas ────────────────────────────────────────────────────────────
 
 @app.route("/gastos-ventas")
+@login_requerido
+@permiso_requerido("gastos_ventas", "lectura")
 def gastos_ventas():
     db = g.db
     items = db.execute("SELECT * FROM gastos_ventas ORDER BY categoria, concepto").fetchall()
@@ -616,6 +869,8 @@ def gastos_ventas():
 
 
 @app.route("/gastos-ventas/nuevo", methods=["POST"])
+@login_requerido
+@permiso_requerido("gastos_ventas", "total")
 def gv_nuevo():
     db = g.db
     concepto = request.form.get("concepto", "").strip()
@@ -630,6 +885,8 @@ def gv_nuevo():
 
 
 @app.route("/gastos-ventas/editar/<int:gid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("gastos_ventas", "total")
 def gv_editar(gid):
     db = g.db
     concepto = request.form.get("concepto", "").strip()
@@ -643,6 +900,8 @@ def gv_editar(gid):
 
 
 @app.route("/gastos-ventas/eliminar/<int:gid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("gastos_ventas", "total")
 def gv_eliminar(gid):
     db = g.db
     db.execute("DELETE FROM gastos_ventas WHERE id = ?", (gid,))
@@ -654,6 +913,8 @@ def gv_eliminar(gid):
 # ─── Gastos Financieros ───────────────────────────────────────────────────────
 
 @app.route("/gastos-financieros")
+@login_requerido
+@permiso_requerido("gastos_financieros", "lectura")
 def gastos_financieros():
     db = g.db
     items = db.execute("SELECT * FROM gastos_financieros").fetchall()
@@ -662,6 +923,8 @@ def gastos_financieros():
 
 
 @app.route("/gastos-financieros/nuevo", methods=["POST"])
+@login_requerido
+@permiso_requerido("gastos_financieros", "total")
 def gf_nuevo():
     db = g.db
     concepto = request.form.get("concepto", "").strip()
@@ -674,6 +937,8 @@ def gf_nuevo():
 
 
 @app.route("/gastos-financieros/editar/<int:gid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("gastos_financieros", "total")
 def gf_editar(gid):
     db = g.db
     concepto = request.form.get("concepto", "").strip()
@@ -685,6 +950,8 @@ def gf_editar(gid):
 
 
 @app.route("/gastos-financieros/eliminar/<int:gid>", methods=["POST"])
+@login_requerido
+@permiso_requerido("gastos_financieros", "total")
 def gf_eliminar(gid):
     db = g.db
     db.execute("DELETE FROM gastos_financieros WHERE id = ?", (gid,))
@@ -694,6 +961,8 @@ def gf_eliminar(gid):
 
 
 @app.route("/configuracion", methods=["GET", "POST"])
+@login_requerido
+@permiso_requerido("configuracion", "total")
 def configuracion():
     db = g.db
     if request.method == "POST":
@@ -708,6 +977,8 @@ def configuracion():
 
 
 @app.route("/ayuda")
+@login_requerido
+@permiso_requerido("manuales", "lectura")
 def ayuda():
     modulos = [
         ("Inventario", "La materia prima usa rendimiento para reflejar merma: costo unitario real = costo compra / rendimiento util."),
@@ -720,31 +991,27 @@ def ayuda():
 
 
 @app.route("/manual-sistema")
+@login_requerido
+@permiso_requerido("manuales", "lectura")
 def manual_sistema():
     db = g.db
-    config = obtener_configuracion(db)
-    schemas = db.execute(
-        """
-        SELECT name, sql
-        FROM sqlite_master
-        WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
-        ORDER BY name
-        """
-    ).fetchall()
-    plato = db.execute("SELECT * FROM platos WHERE nombre = 'Lomo Saltado'").fetchone()
-    ejemplo = calcular_estado_resultados(db, plato["id"], 35) if plato else None
-    return render_template(
-        "manual_sistema.html",
-        config=config,
-        schemas=schemas,
-        plato=plato,
-        ejemplo=ejemplo,
-    )
+    return render_template("manual_sistema.html", **_manual_context(db))
+
+
+@app.route("/manual-sistema/pdf")
+@login_requerido
+@permiso_requerido("manuales", "lectura")
+def manual_sistema_pdf():
+    response = make_response(render_template("manual_sistema_pdf.html"))
+    response.headers["Content-Type"] = "text/html; charset=utf-8"
+    return response
 
 
 # ─── Kardex ───────────────────────────────────────────────────────────────────
 
 @app.route("/kardex/<int:ing_id>")
+@login_requerido
+@permiso_requerido("kardex", "lectura")
 def kardex(ing_id):
     db = g.db
     ingrediente = db.execute("SELECT * FROM ingredientes WHERE id = ?", (ing_id,)).fetchone()
@@ -754,6 +1021,8 @@ def kardex(ing_id):
 
 
 @app.route("/kardex/<int:ing_id>/nuevo", methods=["POST"])
+@login_requerido
+@permiso_requerido("kardex", "total")
 def kardex_nuevo(ing_id):
     db = g.db
     fecha = request.form.get("fecha", "2025-01-01")
@@ -790,6 +1059,8 @@ def kardex_nuevo(ing_id):
 # ─── Estado de Resultados ─────────────────────────────────────────────────────
 
 @app.route("/resultado/<int:plato_id>")
+@login_requerido
+@permiso_requerido("resultado", "lectura")
 def resultado(plato_id):
     db = g.db
     plato = db.execute("SELECT * FROM platos WHERE id = ?", (plato_id,)).fetchone()
@@ -832,6 +1103,8 @@ def resultado(plato_id):
                            config=er["config"])
 
 
+init_db()
+
+
 if __name__ == "__main__":
-    init_db()
     app.run(host="0.0.0.0", port=PORT, debug=False)

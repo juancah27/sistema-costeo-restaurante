@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual de Sistema - Sistema de Costeo</title>
+  <style>
+/* ─── Reset & Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f7f5f2;
+  --surface: #ffffff;
+  --border: #e5e2dc;
+  --text: #1a1a18;
+  --muted: #7a7870;
+  --accent: #c0392b;
+  --accent-light: #fdf1f0;
+  --accent-dark: #96291f;
+  --success: #27ae60;
+  --success-light: #edfaf3;
+  --warning: #e67e22;
+  --warning-light: #fef9ec;
+  --info: #2980b9;
+  --info-light: #edf5fc;
+  --danger: #c0392b;
+  --sidebar-w: 260px;
+  --header-h: 56px;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.04);
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ─── Layout ───────────────────────────────────────────────────────────────── */
+.layout { display: flex; min-height: 100vh; }
+
+/* ─── Sidebar ──────────────────────────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 200;
+  transform: translateX(0);
+  transition: transform .25s ease;
+}
+
+.sidebar.hidden { transform: translateX(calc(-1 * var(--sidebar-w))); }
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-brand .logo {
+  width: 32px; height: 32px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.sidebar-brand .brand-name {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -.3px;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.sidebar-brand .brand-sub {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.sidebar-nav { flex: 1; overflow-y: auto; padding: 12px 0; }
+
+.nav-section {
+  padding: 8px 16px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 0;
+  transition: background .15s, color .15s;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  text-decoration: none;
+}
+
+.nav-link:hover { background: var(--bg); color: var(--text); text-decoration: none; }
+.nav-link.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+
+.nav-link .icon {
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  opacity: .7;
+}
+.nav-link.active .icon { opacity: 1; }
+
+/* ─── Header ───────────────────────────────────────────────────────────────── */
+.main {
+  flex: 1;
+  margin-left: var(--sidebar-w);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  transition: margin-left .25s ease;
+}
+.main.expanded { margin-left: 0; }
+
+.header {
+  height: var(--header-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+  position: sticky; top: 0; z-index: 100;
+}
+
+.hamburger {
+  background: none; border: none; cursor: pointer;
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 6px;
+  border-radius: var(--radius);
+  transition: background .15s;
+}
+.hamburger:hover { background: var(--bg); }
+.hamburger span {
+  display: block;
+  width: 18px; height: 2px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: transform .25s, opacity .25s;
+}
+
+.header-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+}
+
+.header-badge {
+  font-size: 11px;
+  background: var(--accent-light);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+/* ─── Content ──────────────────────────────────────────────────────────────── */
+.content {
+  flex: 1;
+  padding: 28px 28px;
+  max-width: 1200px;
+  width: 100%;
+}
+
+/* ─── Cards ────────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.card-body { padding: 20px; }
+
+/* ─── Stat Cards ───────────────────────────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  box-shadow: var(--shadow);
+}
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -.5px;
+}
+
+.stat-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* ─── Dish Grid ─────────────────────────────────────────────────────────────── */
+.dish-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.dish-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: box-shadow .2s;
+}
+
+.dish-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.1); }
+
+.dish-img {
+  width: 100%; height: 180px;
+  object-fit: cover;
+  display: block;
+  background: var(--bg);
+}
+
+.dish-img-placeholder {
+  width: 100%; height: 180px;
+  background: linear-gradient(135deg, #f0ede8, #e8e4dc);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px;
+}
+
+.dish-body { padding: 16px; }
+.dish-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.dish-desc { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+
+.dish-meta {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-bottom: 12px;
+}
+
+.meta-pill {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.pill-green { background: var(--success-light); color: var(--success); }
+.pill-red { background: var(--accent-light); color: var(--accent); }
+.pill-blue { background: var(--info-light); color: var(--info); }
+.pill-orange { background: var(--warning-light); color: var(--warning); }
+
+/* ─── Tables ───────────────────────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg); }
+
+.td-right { text-align: right; }
+.td-center { text-align: center; }
+.td-mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; }
+.td-bold { font-weight: 700; }
+
+tfoot td {
+  font-weight: 700;
+  background: var(--bg);
+  border-top: 2px solid var(--border);
+  border-bottom: none;
+}
+
+/* ─── Forms ────────────────────────────────────────────────────────────────── */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+
+label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+input, select, textarea {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-size: 13px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font);
+  transition: border-color .15s;
+  width: 100%;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+input[type="number"] { font-family: 'SF Mono', 'Fira Code', monospace; }
+
+/* ─── Buttons ──────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background .15s, border-color .15s, opacity .15s;
+  font-family: var(--font);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); color: #fff; text-decoration: none; }
+
+.btn-secondary { background: var(--surface); color: var(--text); border-color: var(--border); }
+.btn-secondary:hover { background: var(--bg); text-decoration: none; }
+
+.btn-danger { background: var(--accent-light); color: var(--accent); border-color: var(--border); }
+.btn-danger:hover { background: var(--accent); color: #fff; }
+
+.btn-ghost { background: transparent; color: var(--muted); border-color: transparent; padding: 6px 10px; }
+.btn-ghost:hover { background: var(--bg); color: var(--text); }
+
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-full { width: 100%; justify-content: center; }
+
+/* ─── Alerts / Flashes ─────────────────────────────────────────────────────── */
+.alerts { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
+
+.alert {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.alert-success { background: var(--success-light); color: var(--success); border: 1px solid #b7efd3; }
+.alert-danger { background: var(--accent-light); color: var(--accent); border: 1px solid #f5c6c2; }
+.alert-warning { background: var(--warning-light); color: var(--warning); border: 1px solid #fce0b4; }
+.alert-info { background: var(--info-light); color: var(--info); border: 1px solid #b8d9f5; }
+
+/* ─── Badges ───────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+
+.badge-success { background: var(--success-light); color: var(--success); }
+.badge-danger { background: var(--accent-light); color: var(--accent); }
+.badge-warning { background: var(--warning-light); color: var(--warning); }
+.badge-muted { background: var(--bg); color: var(--muted); }
+
+/* ─── Page header ──────────────────────────────────────────────────────────── */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -.4px;
+}
+
+.page-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+/* ─── Inline edit rows ─────────────────────────────────────────────────────── */
+.edit-form-row {
+  display: none;
+  background: var(--bg);
+}
+
+.edit-form-row.show { display: table-row; }
+
+.edit-form-row td { padding: 12px 14px; }
+
+/* ─── Progress bar ─────────────────────────────────────────────────────────── */
+.progress-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  min-width: 80px;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+}
+
+/* ─── Estado de Resultados ─────────────────────────────────────────────────── */
+.er-table { font-size: 13px; }
+.er-section { background: var(--bg); font-weight: 700; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.er-total { font-weight: 700; font-size: 14px; }
+.er-highlight { background: var(--accent-light); font-weight: 700; color: var(--accent); }
+.er-price { background: #1a1a18; color: #fff; font-weight: 700; font-size: 15px; }
+
+/* ─── Utility ──────────────────────────────────────────────────────────────── */
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+.mb-16 { margin-bottom: 16px; }
+.mb-24 { margin-bottom: 24px; }
+.gap-8 { gap: 8px; }
+.flex { display: flex; }
+.flex-center { display: flex; align-items: center; }
+.justify-between { justify-content: space-between; }
+.text-right { text-align: right; }
+.text-muted { color: var(--muted); }
+.text-accent { color: var(--accent); }
+.text-success { color: var(--success); }
+.font-mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; }
+.bold { font-weight: 700; }
+
+/* ─── Overlay ──────────────────────────────────────────────────────────────── */
+.overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.3);
+  z-index: 150;
+}
+.overlay.show { display: block; }
+
+/* ─── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(calc(-1 * var(--sidebar-w))); }
+  .sidebar.show { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .content { padding: 16px; }
+  .dish-grid { grid-template-columns: 1fr 1fr; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 500px) {
+  .dish-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: 1fr; }
+}
+
+/* A4 report mode - screen */
+.manual-container {
+  max-width: 210mm;
+  margin: 0 auto;
+  background: #e0e0e0;
+  padding: 20px 0;
+}
+
+.pagina-a4 {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto 30px auto;
+  padding: 25mm 20mm 25mm 25mm;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+  font-size: 11pt;
+  line-height: 1.6;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+.pagina-a4::after {
+  content: attr(data-page);
+  position: absolute;
+  bottom: 15mm;
+  right: 20mm;
+  font-size: 9pt;
+  color: #888;
+}
+
+.pagina-a4::before {
+  content: attr(data-header);
+  position: absolute;
+  top: 10mm;
+  left: 25mm;
+  right: 20mm;
+  font-size: 8pt;
+  color: #aaa;
+  border-bottom: 0.5px solid #ddd;
+  padding-bottom: 5px;
+}
+
+.pagina-portada {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.pagina-portada h1 {
+  font-size: 28pt;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+.pagina-portada h2 {
+  font-size: 16pt;
+  color: #555;
+  font-weight: normal;
+  margin-bottom: 40px;
+}
+
+.pagina-portada .linea-decorativa {
+  width: 60%;
+  height: 3px;
+  background: var(--accent);
+  margin: 30px auto;
+}
+
+.pagina-portada .datos-portada {
+  margin-top: 60px;
+  font-size: 11pt;
+  color: #666;
+  line-height: 2;
+}
+
+.indice-item {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dotted #ccc;
+  padding: 6px 0;
+  font-size: 11pt;
+}
+
+.indice-item .titulo { flex: 1; }
+.indice-item .num-pagina {
+  min-width: 30px;
+  text-align: right;
+  color: #888;
+}
+
+.pagina-a4 h2 {
+  font-size: 16pt;
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+  margin-top: 0;
+}
+
+.pagina-a4 h3 {
+  font-size: 13pt;
+  color: var(--accent-dark);
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+.pagina-a4 table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10pt;
+  margin: 15px 0;
+}
+
+.pagina-a4 table th {
+  background: var(--accent);
+  color: white;
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.pagina-a4 table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.pagina-a4 table tr:nth-child(even) { background: #f9f9f9; }
+.pagina-a4 ol li, .pagina-a4 ul li { margin-bottom: 8px; }
+
+.nota-info {
+  background: #e3f2fd;
+  border-left: 4px solid #2196F3;
+  padding: 12px 16px;
+  border-radius: 0 4px 4px 0;
+  margin: 15px 0;
+  font-size: 10pt;
+}
+
+.nota-warning {
+  background: #fff3cd;
+  border-left: 4px solid #ffc107;
+  padding: 12px 16px;
+  border-radius: 0 4px 4px 0;
+  margin: 15px 0;
+  font-size: 10pt;
+}
+
+.nota-danger {
+  background: #f8d7da;
+  border-left: 4px solid #dc3545;
+  padding: 12px 16px;
+  border-radius: 0 4px 4px 0;
+  margin: 15px 0;
+  font-size: 10pt;
+}
+
+.pagina-a4 pre {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 15px;
+  border-radius: 6px;
+  font-size: 9pt;
+  overflow-x: auto;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.pagina-a4 code {
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10pt;
+}
+
+@media print {
+  body { background: white !important; }
+
+  nav, .sidebar, .navbar, .header, .no-print {
+    display: none !important;
+  }
+
+  .main {
+    margin-left: 0 !important;
+    display: block;
+  }
+
+  .content {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  .manual-container {
+    background: none;
+    padding: 0;
+    max-width: none;
+  }
+
+  .pagina-a4 {
+    box-shadow: none;
+    margin: 0;
+    padding: 20mm 18mm 20mm 22mm;
+    page-break-after: always;
+    min-height: auto;
+  }
+
+  .pagina-a4:last-child { page-break-after: avoid; }
+
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  table { page-break-inside: avoid; }
+  h2, h3 { page-break-after: avoid; }
+
+  .pagina-a4 pre {
+    background: #f5f5f5 !important;
+    color: #333 !important;
+    border: 1px solid #ddd;
+  }
+}
+
+body { background: #e0e0e0; }
+.content { padding: 0; max-width: none; }
+  </style>
+</head>
+<body>
+<div class="manual-container">
+  <div class="pagina-a4 pagina-portada" data-page="">
+    <div class="linea-decorativa"></div>
+    <h1>&#128216; Manual de Sistema</h1>
+    <h2>Sistema de Costeo para Restaurante</h2>
+    <div class="linea-decorativa"></div>
+    <div class="datos-portada">
+      <p><strong>Version:</strong> 1.0</p>
+      <p><strong>Fecha:</strong> Mayo 2026</p>
+      <p><strong>Elaborado por:</strong> Mi Restaurante</p>
+      <p><strong>Curso:</strong> [editable]</p>
+      <p><strong>Docente:</strong> [editable]</p>
+    </div>
+  </div>
+
+  <div class="pagina-a4" data-page="i" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>&#128209; Indice</h2>
+    
+    
+      <div class="indice-item"><span class="titulo">1. Introduccion y Stack Tecnologico</span><span class="num-pagina">1</span></div>
+    
+      <div class="indice-item"><span class="titulo">2. Arquitectura</span><span class="num-pagina">2</span></div>
+    
+      <div class="indice-item"><span class="titulo">3. Base de Datos - Esquema SQL</span><span class="num-pagina">3-4</span></div>
+    
+      <div class="indice-item"><span class="titulo">4. Diagrama Entidad-Relacion</span><span class="num-pagina">5</span></div>
+    
+      <div class="indice-item"><span class="titulo">5. Modulo Ingredientes y Conversiones</span><span class="num-pagina">6</span></div>
+    
+      <div class="indice-item"><span class="titulo">6. Modulo Recetas</span><span class="num-pagina">7</span></div>
+    
+      <div class="indice-item"><span class="titulo">7. Modulo Proyeccion de Demanda</span><span class="num-pagina">8</span></div>
+    
+      <div class="indice-item"><span class="titulo">8. Modulo Empleados</span><span class="num-pagina">9</span></div>
+    
+      <div class="indice-item"><span class="titulo">9. Productividad y Estudios de Tiempo</span><span class="num-pagina">10</span></div>
+    
+      <div class="indice-item"><span class="titulo">10. CIF y Depreciacion</span><span class="num-pagina">11</span></div>
+    
+      <div class="indice-item"><span class="titulo">11. Gastos</span><span class="num-pagina">12</span></div>
+    
+      <div class="indice-item"><span class="titulo">12. Estado de Resultados</span><span class="num-pagina">13</span></div>
+    
+      <div class="indice-item"><span class="titulo">13. Kardex</span><span class="num-pagina">14</span></div>
+    
+      <div class="indice-item"><span class="titulo">14. Configuracion</span><span class="num-pagina">15</span></div>
+    
+      <div class="indice-item"><span class="titulo">15. Validaciones y Manejo de Errores</span><span class="num-pagina">16</span></div>
+    
+      <div class="indice-item"><span class="titulo">16. Pruebas Realizadas</span><span class="num-pagina">17-18</span></div>
+    
+      <div class="indice-item"><span class="titulo">17. Instalacion y Despliegue</span><span class="num-pagina">19</span></div>
+    
+  </div>
+
+  <div class="pagina-a4" data-page="1" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>1. Introduccion + Stack Tecnologico</h2>
+    <p>El sistema implementa una aplicacion web para costear platos de restaurante. Permite registrar materia prima, recetas, demanda mensual, planilla, costos indirectos, activos, gastos y calcular el Estado de Resultados unitario por plato.</p>
+    <h3>Stack tecnologico real</h3>
+    <table>
+      <tr><th>Capa</th><th>Tecnologia</th><th>Uso</th></tr>
+      <tr><td>Backend</td><td>Flask</td><td>Rutas, formularios, calculos y renderizado Jinja2.</td></tr>
+      <tr><td>Base de datos</td><td>SQLite</td><td>Persistencia local en <code>restaurant.db</code>.</td></tr>
+      <tr><td>Templates</td><td>Jinja2</td><td>Vistas HTML extendidas desde <code>base.html</code>.</td></tr>
+      <tr><td>Estilos</td><td>CSS vanilla</td><td>Dise&ntilde;o propio en <code>static/css/style.css</code>.</td></tr>
+      <tr><td>Deploy</td><td>Vercel Python</td><td>Entrada Flask por <code>app.py</code> y dependencias en <code>requirements.txt</code>.</td></tr>
+    </table>
+    <div class="nota-info">El repositorio conserva archivos Vite/Replit, pero la aplicacion productiva de costeo es Flask/Jinja2.</div>
+  </div>
+
+  <div class="pagina-a4" data-page="2" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>2. Arquitectura</h2>
+    <h3>Estructura de carpetas</h3>
+    <pre>artifacts/restaurant-app/
+  app.py
+  database.py
+  calculos.py
+  requirements.txt
+  vercel.json
+  restaurant.db
+  templates/
+    base.html
+    dashboard.html
+    ingredientes.html
+    recetas.html
+    proyeccion.html
+    empleados.html
+    productividad.html
+    estudios_tiempo.html
+    costos_indirectos.html
+    activos_fijos.html
+    gastos_admin.html
+    gastos_ventas.html
+    gastos_financieros.html
+    resultado.html
+    configuracion.html
+    ayuda.html
+    manual_sistema.html
+  static/
+    css/style.css
+    js/main.js
+    images/</pre>
+    <h3>Diagrama de flujo</h3>
+    <pre>Usuario
+  |
+  v
+Flask app.py  --->  Jinja2 templates/base.html
+  |
+  +-- database.py: conexion, migracion, seed
+  |
+  +-- calculos.py: MP, MOD, CIF, gastos, ER
+  |
+  v
+SQLite restaurant.db</pre>
+  </div>
+
+  <div class="pagina-a4" data-page="3" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>3. Base de Datos - Esquema SQL</h2>
+    <p>El esquema se crea en <code>init_db()</code> y se actualiza con <code>migrate_schema(db)</code>. Estas son las tablas reales detectadas en SQLite:</p>
+    
+      <h3>activos_fijos</h3>
+      <pre>CREATE TABLE activos_fijos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            valor_adquisicion REAL NOT NULL,
+            valor_residual REAL NOT NULL DEFAULT 0,
+            vida_util_anos INTEGER NOT NULL,
+            fecha_adquisicion TEXT NOT NULL,
+            metodo TEXT NOT NULL DEFAULT &#39;LINEAL&#39;,
+            activo INTEGER NOT NULL DEFAULT 1
+        )</pre>
+    
+      <h3>configuracion</h3>
+      <pre>CREATE TABLE configuracion (
+            clave TEXT PRIMARY KEY,
+            valor TEXT NOT NULL,
+            descripcion TEXT
+        )</pre>
+    
+      <h3>conversiones</h3>
+      <pre>CREATE TABLE conversiones (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ingrediente_id INTEGER NOT NULL,
+            equivalencia REAL NOT NULL,
+            unidad_uso TEXT NOT NULL, factor_conversion REAL NOT NULL DEFAULT 1,
+            FOREIGN KEY (ingrediente_id) REFERENCES ingredientes(id)
+        )</pre>
+    
+      <h3>costos_indirectos</h3>
+      <pre>CREATE TABLE costos_indirectos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            concepto TEXT NOT NULL,
+            monto REAL NOT NULL
+        , categoria TEXT DEFAULT &#39;GENERAL&#39; CHECK(categoria IN (&#39;SERVICIO&#39;,&#39;TASA_MUNICIPAL&#39;,&#39;GENERAL&#39;)), prioridad INTEGER DEFAULT 0)</pre>
+    
+      <h3>empleados</h3>
+      <pre>CREATE TABLE empleados (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            cargo TEXT DEFAULT &#39;&#39;,
+            sueldo_base REAL NOT NULL,
+            gratificaciones REAL DEFAULT 0,
+            bonificaciones REAL DEFAULT 0,
+            seguro REAL DEFAULT 0,
+            cts REAL DEFAULT 0
+        , clasificacion TEXT NOT NULL DEFAULT &#39;MOD&#39; CHECK(clasificacion IN (&#39;MOD&#39;,&#39;MOI&#39;,&#39;ADMIN&#39;,&#39;VENTAS&#39;)))</pre>
+    
+      <h3>estudios_tiempo</h3>
+      <pre>CREATE TABLE estudios_tiempo (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            plato_id INTEGER NOT NULL,
+            tarea TEXT NOT NULL,
+            empleado_id INTEGER,
+            tiempo_observado REAL NOT NULL,
+            fecha_registro TEXT NOT NULL,
+            notas TEXT,
+            FOREIGN KEY (plato_id) REFERENCES platos(id),
+            FOREIGN KEY (empleado_id) REFERENCES empleados(id)
+        )</pre>
+    
+      <h3>gastos_admin</h3>
+      <pre>CREATE TABLE gastos_admin (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            concepto TEXT NOT NULL,
+            monto REAL NOT NULL
+        , categoria TEXT DEFAULT &#39;GENERAL&#39; CHECK(categoria IN (&#39;GENERAL&#39;,&#39;REGULATORIO&#39;,&#39;SERVICIOS_TERCEROS&#39;)))</pre>
+    
+  </div>
+
+  <div class="pagina-a4" data-page="4" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>3. Base de Datos - Esquema SQL (cont.)</h2>
+    
+      <h3>gastos_financieros</h3>
+      <pre>CREATE TABLE gastos_financieros (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            concepto TEXT NOT NULL,
+            monto REAL NOT NULL
+        )</pre>
+    
+      <h3>gastos_ventas</h3>
+      <pre>CREATE TABLE gastos_ventas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            concepto TEXT NOT NULL,
+            monto REAL NOT NULL
+        , categoria TEXT DEFAULT &#39;GENERAL&#39;)</pre>
+    
+      <h3>ingredientes</h3>
+      <pre>CREATE TABLE ingredientes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            costo_compra REAL NOT NULL,
+            unidad_compra TEXT NOT NULL
+        , unidad_medida TEXT NOT NULL DEFAULT &#39;kg&#39;, rendimiento REAL)</pre>
+    
+      <h3>kardex</h3>
+      <pre>CREATE TABLE kardex (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ingrediente_id INTEGER NOT NULL,
+            fecha TEXT NOT NULL,
+            tipo TEXT NOT NULL CHECK(tipo IN (&#39;ENTRADA&#39;,&#39;SALIDA&#39;,&#39;AJUSTE&#39;)),
+            cantidad REAL NOT NULL,
+            unidad TEXT NOT NULL,
+            costo_unitario REAL NOT NULL,
+            costo_total REAL NOT NULL,
+            saldo_cantidad REAL NOT NULL,
+            saldo_valor REAL NOT NULL,
+            FOREIGN KEY (ingrediente_id) REFERENCES ingredientes(id)
+        )</pre>
+    
+      <h3>platos</h3>
+      <pre>CREATE TABLE platos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            descripcion TEXT,
+            imagen TEXT
+        )</pre>
+    
+      <h3>produccion_empleado</h3>
+      <pre>CREATE TABLE produccion_empleado (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            plato_id INTEGER NOT NULL UNIQUE,
+            minutos_por_plato REAL NOT NULL,
+            dias_laborables INTEGER NOT NULL,
+            horas_por_dia REAL NOT NULL,
+            productividad INTEGER NOT NULL CHECK(productividad BETWEEN 1 AND 100), usar_tiempo_real INTEGER DEFAULT 0,
+            FOREIGN KEY (plato_id) REFERENCES platos(id)
+        )</pre>
+    
+      <h3>proyeccion</h3>
+      <pre>CREATE TABLE proyeccion (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            plato_id INTEGER NOT NULL UNIQUE,
+            cantidad_mensual INTEGER NOT NULL,
+            precio_referencial REAL NOT NULL,
+            FOREIGN KEY (plato_id) REFERENCES platos(id)
+        )</pre>
+    
+      <h3>recetas</h3>
+      <pre>CREATE TABLE recetas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            plato_id INTEGER NOT NULL,
+            ingrediente_id INTEGER NOT NULL,
+            cantidad_uso REAL NOT NULL,
+            unidad_uso TEXT NOT NULL,
+            FOREIGN KEY (plato_id) REFERENCES platos(id),
+            FOREIGN KEY (ingrediente_id) REFERENCES ingredientes(id)
+        )</pre>
+    
+  </div>
+
+  <div class="pagina-a4" data-page="5" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>4. Diagrama Entidad-Relacion</h2>
+    <table>
+      <tr><th>Tabla origen</th><th>Relacion</th><th>Tabla destino</th><th>Uso</th></tr>
+      <tr><td>recetas.plato_id</td><td>N:1</td><td>platos.id</td><td>Ingredientes usados por plato.</td></tr>
+      <tr><td>recetas.ingrediente_id</td><td>N:1</td><td>ingredientes.id</td><td>Materia prima de cada receta.</td></tr>
+      <tr><td>conversiones.ingrediente_id</td><td>1:1/N</td><td>ingredientes.id</td><td>Equivalencia y unidad de uso.</td></tr>
+      <tr><td>kardex.ingrediente_id</td><td>N:1</td><td>ingredientes.id</td><td>Movimientos de inventario.</td></tr>
+      <tr><td>produccion_empleado.plato_id</td><td>1:1</td><td>platos.id</td><td>Tiempo teorico y productividad.</td></tr>
+      <tr><td>estudios_tiempo.plato_id</td><td>N:1</td><td>platos.id</td><td>Tiempo real por tareas.</td></tr>
+      <tr><td>estudios_tiempo.empleado_id</td><td>N:1</td><td>empleados.id</td><td>Responsable de la toma.</td></tr>
+      <tr><td>proyeccion.plato_id</td><td>1:1</td><td>platos.id</td><td>Demanda mensual y precio referencial.</td></tr>
+    </table>
+    <pre>platos -- recetas -- ingredientes -- conversiones
+   |          |
+   |          +-- kardex
+   |
+   +-- proyeccion
+   +-- produccion_empleado
+   +-- estudios_tiempo -- empleados
+
+costos_indirectos + activos_fijos + empleados(MOI) -> CIF
+gastos_admin + empleados(ADMIN) -> GA
+gastos_ventas + empleados(VENTAS) -> GV</pre>
+  </div>
+
+  <div class="pagina-a4" data-page="6" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>5. Modulo Ingredientes + Conversiones</h2>
+    <h3>Descripcion</h3>
+    <p>Administra materia prima, costo de compra, unidad de compra, unidad de medida, rendimiento util y conversiones para calcular costo real por receta.</p>
+    <h3>Rutas Flask</h3>
+    <table>
+      <tr><th>Metodo</th><th>URL</th><th>Funcion</th><th>Descripcion</th></tr>
+      <tr><td>GET</td><td>/ingredientes</td><td>ingredientes</td><td>Lista ingredientes y conversiones.</td></tr>
+      <tr><td>POST</td><td>/ingredientes/nuevo</td><td>ingrediente_nuevo</td><td>Crea ingrediente y conversion.</td></tr>
+      <tr><td>POST</td><td>/ingredientes/editar/&lt;iid&gt;</td><td>ingrediente_editar</td><td>Actualiza costo, unidad y rendimiento.</td></tr>
+      <tr><td>POST</td><td>/ingredientes/eliminar/&lt;iid&gt;</td><td>ingrediente_eliminar</td><td>Elimina ingrediente y dependencias.</td></tr>
+    </table>
+    <h3>Funciones de calculo</h3>
+    <pre>def convertir_unidad(cantidad, unidad_origen, unidad_destino, rendimiento=None)
+def mp_por_plato(db, plato_id)</pre>
+    <h3>Formula</h3>
+    <pre>rendimiento_pct = rendimiento / equivalencia
+costo_unitario_real = costo_compra / (equivalencia * rendimiento_pct)
+costo_mp_item = costo_unitario_real * cantidad_base</pre>
+    <h3>Validaciones</h3>
+    <ul><li>Solo crea si <code>nombre</code> tiene valor.</li><li>Convierte numericos con <code>float()</code>.</li><li>Si rendimiento no llega, usa equivalencia para preservar calculos.</li></ul>
+    <h3>Template asociado</h3>
+    <p><code>ingredientes.html</code> - formulario, tabla y acceso al kardex.</p>
+  </div>
+
+  <div class="pagina-a4" data-page="7" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>6. Modulo Recetas</h2>
+    <h3>Descripcion</h3>
+    <p>Relaciona platos con ingredientes, cantidades y unidades de uso. Es la base para calcular materia prima unitaria.</p>
+    <h3>Rutas Flask</h3>
+    <table>
+      <tr><th>Metodo</th><th>URL</th><th>Funcion</th><th>Descripcion</th></tr>
+      <tr><td>GET</td><td>/recetas</td><td>recetas</td><td>Lista recetas por plato.</td></tr>
+      <tr><td>POST</td><td>/recetas/nuevo</td><td>receta_nuevo</td><td>Agrega ingrediente a una receta.</td></tr>
+      <tr><td>POST</td><td>/recetas/editar/&lt;rid&gt;</td><td>receta_editar</td><td>Actualiza cantidad y unidad.</td></tr>
+      <tr><td>POST</td><td>/recetas/eliminar/&lt;rid&gt;</td><td>receta_eliminar</td><td>Quita ingrediente de la receta.</td></tr>
+    </table>
+    <h3>Funciones de calculo</h3>
+    <pre>mp, mp_detalle = mp_por_plato(db, plato_id)</pre>
+    <h3>Formula</h3>
+    <pre>MP_plato = suma(costo_unitario_real_ingrediente * cantidad_uso_convertida)</pre>
+    <h3>Validaciones</h3>
+    <ul><li>Requiere plato, ingrediente y cantidad mayor a cero.</li><li>La eliminacion borra solo la fila de receta.</li></ul>
+    <h3>Template asociado</h3>
+    <p><code>recetas.html</code> - composicion de recetas y costo estimado por plato.</p>
+  </div>
+
+  <div class="pagina-a4" data-page="8" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>7. Modulo Proyeccion de Demanda</h2>
+    <h3>Descripcion</h3>
+    <p>Guarda la cantidad mensual y precio referencial por plato. La cantidad mensual se usa para distribuir CIF, gastos y depreciacion.</p>
+    <h3>Rutas Flask</h3>
+    <table>
+      <tr><th>Metodo</th><th>URL</th><th>Funcion</th><th>Descripcion</th></tr>
+      <tr><td>GET</td><td>/proyeccion</td><td>proyeccion</td><td>Muestra demanda mensual y participacion.</td></tr>
+      <tr><td>POST</td><td>/proyeccion/guardar</td><td>proyeccion_guardar</td><td>Actualiza o inserta proyeccion.</td></tr>
+    </table>
+    <h3>Funciones de calculo</h3>
+    <pre>def calcular_pct_participacion(db):
+    pct = cantidad_plato / cantidad_total</pre>
+    <h3>Formula</h3>
+    <pre>ingreso = cantidad_mensual * precio_referencial
+pct_participacion = cantidad_mensual_plato / suma(cantidad_mensual)</pre>
+    <h3>Validaciones</h3>
+    <ul><li>Convierte cantidad a entero y precio a decimal.</li><li>Ignora filas con valores no numericos.</li></ul>
+    <h3>Template asociado</h3>
+    <p><code>proyeccion.html</code> - matriz de demanda, ingresos y participacion.</p>
+  </div>
+
+  <div class="pagina-a4" data-page="9" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>8. Modulo Empleados</h2>
+    <h3>Descripcion</h3>
+    <p>Registra planilla y clasifica el costo laboral en MOD, MOI, ADMIN o VENTAS. Esta clasificacion alimenta MOD, CIF, gastos administrativos y gastos de ventas.</p>
+    <h3>Rutas Flask</h3>
+    <table>
+      <tr><th>Metodo</th><th>URL</th><th>Funcion</th><th>Descripcion</th></tr>
+      <tr><td>GET</td><td>/empleados</td><td>empleados</td><td>Lista personal y subtotales.</td></tr>
+      <tr><td>POST</td><td>/empleados/nuevo</td><td>empleado_nuevo</td><td>Registra empleado.</td></tr>
+      <tr><td>POST</td><td>/empleados/editar/&lt;eid&gt;</td><td>empleado_editar</td><td>Actualiza planilla y clasificacion.</td></tr>
+      <tr><td>POST</td><td>/empleados/eliminar/&lt;eid&gt;</td><td>empleado_eliminar</td><td>Elimina empleado.</td></tr>
+    </table>
+    <h3>Funciones de calculo</h3>
+    <pre>def calcular_planilla_por_clasificacion(db):
+    sueldo_total = sueldo_base + gratificaciones + bonificaciones + seguro + cts</pre>
+    <h3>Formula</h3>
+    <pre>planilla_MOD = suma(sueldo_total WHERE clasificacion='MOD')
+planilla_MOI = suma(sueldo_total WHERE clasificacion='MOI')
+planilla_ADMIN = suma(sueldo_total WHERE clasificacion='ADMIN')
+planilla_VENTAS = suma(sueldo_total WHERE clasificacion='VENTAS')</pre>
+    <h3>Template asociado</h3>
+    <p><code>empleados.html</code> - selector de clasificacion y subtotales por tipo.</p>
+  </div>
+
+  <div class="pagina-a4" data-page="10" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>9. Productividad + Estudios de Tiempo</h2>
+    <h3>Descripcion</h3>
+    <p>Productividad define tiempo teorico por plato. Estudios de tiempo permite registrar tareas reales y elegir si el costo MOD usa minutos teoricos o suma real observada.</p>
+    <h3>Rutas Flask</h3>
+    <table>
+      <tr><th>Metodo</th><th>URL</th><th>Funcion</th><th>Descripcion</th></tr>
+      <tr><td>GET</td><td>/productividad</td><td>productividad</td><td>Parametros MOD por plato.</td></tr>
+      <tr><td>POST</td><td>/productividad/guardar</td><td>productividad_guardar</td><td>Guarda tiempos y productividad.</td></tr>
+      <tr><td>GET</td><td>/estudios-tiempo</td><td>estudios_tiempo_index</td><td>Redirige al primer plato.</td></tr>
+      <tr><td>GET</td><td>/estudios-tiempo/&lt;plato_id&gt;</td><td>estudios_tiempo</td><td>Muestra tareas observadas.</td></tr>
+      <tr><td>POST</td><td>/estudios-tiempo/&lt;plato_id&gt;/nuevo</td><td>estudio_tiempo_nuevo</td><td>Registra una tarea.</td></tr>
+      <tr><td>POST</td><td>/estudios-tiempo/&lt;plato_id&gt;/toggle</td><td>estudio_tiempo_toggle</td><td>Cambia tiempo teorico/real.</td></tr>
+    </table>
+    <h3>Formula</h3>
+    <pre>tiempo_efectivo = dias_laborables * horas_por_dia * 60 * productividad / 100
+costo_minuto = planilla_MOD / tiempo_efectivo
+MOD = costo_minuto * minutos_plato</pre>
+    <h3>Template asociado</h3>
+    <p><code>productividad.html</code> y <code>estudios_tiempo.html</code>.</p>
+  </div>
+
+  <div class="pagina-a4" data-page="11" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>10. CIF + Depreciacion</h2>
+    <h3>Descripcion</h3>
+    <p>El CIF unitario incluye costos indirectos manuales, depreciacion mensual de activos y planilla MOI distribuida por participacion de demanda.</p>
+    <h3>Rutas Flask</h3>
+    <table>
+      <tr><th>Metodo</th><th>URL</th><th>Funcion</th><th>Descripcion</th></tr>
+      <tr><td>GET</td><td>/costos-indirectos</td><td>costos_indirectos</td><td>CIF agrupado por categoria.</td></tr>
+      <tr><td>POST</td><td>/costos-indirectos/nuevo</td><td>cif_nuevo</td><td>Agrega CIF.</td></tr>
+      <tr><td>POST</td><td>/costos-indirectos/editar/&lt;cid&gt;</td><td>cif_editar</td><td>Actualiza CIF.</td></tr>
+      <tr><td>GET</td><td>/activos-fijos</td><td>activos_fijos</td><td>Detalle de depreciacion.</td></tr>
+    </table>
+    <h3>Funciones de calculo</h3>
+    <pre>def calcular_depreciacion_mensual(db)
+def depreciacion_por_plato(db, pct, cantidad_mensual)
+def cif_por_plato(db, plato_id)</pre>
+    <h3>Formula</h3>
+    <pre>depreciacion_mensual = (valor_adquisicion - valor_residual) / vida_util_anos / 12
+CIF_item = (monto * pct_participacion) / cantidad_mensual
+CIF = CIF_manual + depreciacion_unitaria + MOI_unitaria</pre>
+    <div class="nota-info">Depreciacion mensual verificada en datos actuales: S/ 166.5476.</div>
+    <h3>Template asociado</h3>
+    <p><code>costos_indirectos.html</code> y <code>activos_fijos.html</code>.</p>
+  </div>
+
+  <div class="pagina-a4" data-page="12" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>11. Modulo Gastos</h2>
+    <h3>Descripcion</h3>
+    <p>Administra gastos administrativos, ventas y financieros. GA incluye planilla ADMIN; GV incluye planilla VENTAS; GF se distribuye como gasto financiero manual.</p>
+    <h3>Rutas Flask</h3>
+    <table>
+      <tr><th>Metodo</th><th>URL</th><th>Funcion</th><th>Descripcion</th></tr>
+      <tr><td>GET/POST</td><td>/gastos-admin...</td><td>gastos_admin, ga_*</td><td>CRUD gastos administrativos.</td></tr>
+      <tr><td>GET/POST</td><td>/gastos-ventas...</td><td>gastos_ventas, gv_*</td><td>CRUD gastos de ventas.</td></tr>
+      <tr><td>GET/POST</td><td>/gastos-financieros...</td><td>gastos_financieros, gf_*</td><td>CRUD gastos financieros.</td></tr>
+    </table>
+    <h3>Funciones de calculo</h3>
+    <pre>def gastos_por_plato(db, tabla, plato_id):
+    gasto_unitario = (monto * pct) / cantidad
+    if tabla == "gastos_admin": agrega Planilla personal ADMIN
+    if tabla == "gastos_ventas": agrega Planilla personal VENTAS</pre>
+    <h3>Validaciones</h3>
+    <ul><li>Solo inserta cuando <code>concepto</code> tiene valor.</li><li>Las lineas automaticas de planilla no son editables en gastos.</li></ul>
+    <h3>Templates asociados</h3>
+    <p><code>gastos_admin.html</code>, <code>gastos_ventas.html</code>, <code>gastos_financieros.html</code>.</p>
+  </div>
+
+  <div class="pagina-a4" data-page="13" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>12. Estado de Resultados</h2>
+    <h3>Descripcion</h3>
+    <p>Integra todos los componentes unitarios y calcula utilidad, valor de venta, IGV configurable y precio final.</p>
+    <h3>Ruta Flask</h3>
+    <table><tr><th>Metodo</th><th>URL</th><th>Funcion</th><th>Descripcion</th></tr><tr><td>GET</td><td>/resultado/&lt;plato_id&gt;</td><td>resultado</td><td>Estado de resultados por plato.</td></tr></table>
+    <h3>Formula completa</h3>
+    <pre>costo_produccion = MP + MOD + CIF
+costo_total = costo_produccion + GA + GV + GF
+utilidad = costo_total * utilidad_pct / 100
+valor_venta = costo_total + utilidad
+IGV = valor_venta * igv_pct / 100
+precio_final = valor_venta + IGV</pre>
+    <h3>Ejemplo verificado: Lomo Saltado</h3>
+    
+    <table>
+      <tr><th>Concepto</th><th>Monto S/</th></tr>
+      <tr><td>Materia prima</td><td>10.6575</td></tr>
+      <tr><td>MOD</td><td>9.2821</td></tr>
+      <tr><td>CIF</td><td>28.4314</td></tr>
+      <tr><td>Gastos administrativos</td><td>26.1022</td></tr>
+      <tr><td>Gastos de ventas</td><td>6.5222</td></tr>
+      <tr><td>Gastos financieros</td><td>1.0667</td></tr>
+      <tr><td>Costo produccion</td><td>48.3710</td></tr>
+      <tr><td>Costo total</td><td>82.0621</td></tr>
+      <tr><td>Utilidad 35%</td><td>28.7217</td></tr>
+      <tr><td>Valor venta</td><td>110.7838</td></tr>
+      <tr><td>IGV 10.00%</td><td>11.0784</td></tr>
+      <tr><td><strong>Precio final</strong></td><td><strong>121.8622</strong></td></tr>
+    </table>
+    
+    <h3>Template asociado</h3>
+    <p><code>resultado.html</code> - detalle de MP, MOD, CIF, GA, GV, GF y precio final.</p>
+  </div>
+
+  <div class="pagina-a4" data-page="14" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>13. Modulo Kardex</h2>
+    <h3>Descripcion</h3>
+    <p>Registra movimientos de inventario por ingrediente: entradas, salidas y ajustes. Mantiene saldo de cantidad y saldo valorizado.</p>
+    <h3>Rutas Flask</h3>
+    <table><tr><th>Metodo</th><th>URL</th><th>Funcion</th><th>Descripcion</th></tr><tr><td>GET</td><td>/kardex/&lt;ing_id&gt;</td><td>kardex</td><td>Lista movimientos.</td></tr><tr><td>POST</td><td>/kardex/&lt;ing_id&gt;/nuevo</td><td>kardex_nuevo</td><td>Registra movimiento.</td></tr></table>
+    <h3>Formula</h3>
+    <pre>ENTRADA: saldo_cantidad += cantidad; saldo_valor += cantidad * costo_unitario
+SALIDA: saldo_cantidad = max(0, saldo_cantidad - cantidad)
+        costo_prom = saldo_valor / saldo_cantidad si saldo_cantidad > 0
+AJUSTE: saldo_cantidad = cantidad; saldo_valor = cantidad * costo_unitario</pre>
+    <div class="nota-warning">La salida calcula el costo promedio despues de restar cantidad. Esto funciona para saldos positivos, pero conviene revisarlo si se requiere promedio ponderado estricto antes de salida.</div>
+    <h3>Template asociado</h3>
+    <p><code>kardex.html</code> - movimientos y saldo final por ingrediente.</p>
+  </div>
+
+  <div class="pagina-a4" data-page="15" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>14. Configuracion y Parametrizacion</h2>
+    <h3>Descripcion</h3>
+    <p>Permite editar valores generales sin tocar codigo: nombre del negocio, IGV, moneda y sector.</p>
+    <h3>Rutas Flask</h3>
+    <table><tr><th>Metodo</th><th>URL</th><th>Funcion</th><th>Descripcion</th></tr><tr><td>GET</td><td>/configuracion</td><td>configuracion</td><td>Muestra formulario.</td></tr><tr><td>POST</td><td>/configuracion</td><td>configuracion</td><td>Actualiza claves.</td></tr><tr><td>GET</td><td>/ayuda</td><td>ayuda</td><td>Resumen de logica.</td></tr><tr><td>GET</td><td>/manual-sistema</td><td>manual_sistema</td><td>Manual tecnico A4.</td></tr></table>
+    <h3>Funcion de calculo</h3>
+    <pre>def obtener_configuracion(db):
+    rows = db.execute("SELECT clave, valor FROM configuracion").fetchall()
+    config.setdefault("igv_pct", "10")</pre>
+    <h3>Valores actuales</h3>
+    <table><tr><th>Clave</th><th>Valor</th></tr><tr><td>nombre_negocio</td><td>Mi Restaurante</td></tr><tr><td>igv_pct</td><td>10</td></tr><tr><td>moneda</td><td>PEN</td></tr><tr><td>sector</td><td>RESTAURANTE</td></tr></table>
+    <h3>Template asociado</h3>
+    <p><code>configuracion.html</code> - formulario de parametros del sistema.</p>
+  </div>
+
+  <div class="pagina-a4" data-page="16" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>15. Validaciones y Manejo de Errores</h2>
+    <table>
+      <tr><th>Modulo</th><th>Validacion implementada</th><th>Manejo</th></tr>
+      <tr><td>Proyeccion</td><td>Cantidad y precio numericos.</td><td>Filas invalidas se omiten.</td></tr>
+      <tr><td>Ingredientes</td><td>Nombre obligatorio.</td><td>Solo inserta si hay nombre.</td></tr>
+      <tr><td>Recetas</td><td>Plato, ingrediente y cantidad &gt; 0.</td><td>Evita insercion incompleta.</td></tr>
+      <tr><td>Productividad</td><td>Productividad entre 1 y 100.</td><td>Flash de error y continua con otros platos.</td></tr>
+      <tr><td>Resultado</td><td>Plato existente y proyeccion disponible.</td><td>Redireccion a dashboard/proyeccion con mensaje.</td></tr>
+      <tr><td>SQLite</td><td>Foreign keys activadas.</td><td><code>PRAGMA foreign_keys = ON</code>.</td></tr>
+      <tr><td>Migracion</td><td>Columnas detectadas por PRAGMA.</td><td><code>ALTER TABLE</code> solo si falta columna.</td></tr>
+    </table>
+    <h3>Mensajes de usuario</h3>
+    <p>El sistema usa <code>flash()</code> con categorias <code>success</code>, <code>warning</code> y <code>danger</code>, renderizadas en <code>base.html</code>.</p>
+    <div class="nota-info">Se implementa autenticacion con sesiones Flask y roles por modulo. Las rutas protegidas redirigen a login o muestran 403 segun corresponda.</div>
+  </div>
+
+  <div class="pagina-a4" data-page="17" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>16. Pruebas Realizadas</h2>
+    <table>
+      <tr><th>Modulo</th><th>Prueba</th><th>Resultado esperado</th><th>Resultado obtenido</th><th>Estado</th></tr>
+      <tr><td>Sintaxis</td><td><code>python -m compileall</code></td><td>Sin errores</td><td>Sin errores</td><td>OK</td></tr>
+      <tr><td>Base de datos</td><td><code>init_db()</code></td><td>Crear/migrar tablas</td><td>Tablas y seed disponibles</td><td>OK</td></tr>
+      <tr><td>Dashboard</td><td>GET /</td><td>HTTP 200</td><td>HTTP 200 verificado</td><td>OK</td></tr>
+      <tr><td>Ingredientes</td><td>GET /ingredientes</td><td>HTTP 200</td><td>HTTP 200 verificado</td><td>OK</td></tr>
+      <tr><td>Recetas</td><td>GET /recetas</td><td>HTTP 200</td><td>HTTP 200 verificado</td><td>OK</td></tr>
+      <tr><td>Empleados</td><td>GET /empleados</td><td>HTTP 200</td><td>HTTP 200 verificado</td><td>OK</td></tr>
+      <tr><td>Productividad</td><td>GET /productividad</td><td>HTTP 200</td><td>HTTP 200 verificado</td><td>OK</td></tr>
+      <tr><td>Estudios</td><td>GET /estudios-tiempo/1</td><td>HTTP 200</td><td>HTTP 200 verificado</td><td>OK</td></tr>
+    </table>
+  </div>
+
+  <div class="pagina-a4" data-page="18" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>16. Pruebas Realizadas (cont.)</h2>
+    <table>
+      <tr><th>Modulo</th><th>Prueba</th><th>Resultado esperado</th><th>Resultado obtenido</th><th>Estado</th></tr>
+      <tr><td>CIF</td><td>GET /costos-indirectos</td><td>HTTP 200</td><td>HTTP 200 verificado</td><td>OK</td></tr>
+      <tr><td>Activos</td><td>GET /activos-fijos</td><td>HTTP 200</td><td>HTTP 200 verificado</td><td>OK</td></tr>
+      <tr><td>Gastos</td><td>GET /gastos-admin, /gastos-ventas, /gastos-financieros</td><td>HTTP 200</td><td>HTTP 200 verificado</td><td>OK</td></tr>
+      <tr><td>Configuracion</td><td>GET /configuracion</td><td>HTTP 200</td><td>HTTP 200 verificado</td><td>OK</td></tr>
+      <tr><td>Ayuda</td><td>GET /ayuda</td><td>HTTP 200</td><td>HTTP 200 verificado</td><td>OK</td></tr>
+      <tr><td>Resultado</td><td>GET /resultado/1</td><td>HTTP 200</td><td>HTTP 200 verificado</td><td>OK</td></tr>
+      <tr><td>Manual</td><td>GET /manual-sistema</td><td>HTTP 200</td><td>HTTP 200 verificado</td><td>OK</td></tr>
+    </table>
+    <h3>Comando recomendado</h3>
+    <pre>python -m compileall app.py database.py calculos.py
+python app.py</pre>
+  </div>
+
+  <div class="pagina-a4" data-page="19" data-header="Manual de Sistema - Sistema de Costeo">
+    <h2>17. Requisitos de Instalacion + Despliegue</h2>
+    <h3>Requisitos locales</h3>
+    <ul>
+      <li>Python 3.x.</li>
+      <li>Flask instalado desde <code>requirements.txt</code>.</li>
+      <li>SQLite incluido con Python.</li>
+    </ul>
+    <pre>cd artifacts/restaurant-app
+pip install -r requirements.txt
+python app.py</pre>
+    <h3>Despliegue en Vercel</h3>
+    <ul>
+      <li>Root Directory: <code>artifacts/restaurant-app</code>.</li>
+      <li>Framework: Flask u Other.</li>
+      <li>Build Command: vacio si Vercel respeta Flask; no usar Vite para esta app.</li>
+      <li>Output Directory: vacio.</li>
+      <li><code>vercel.json</code> redirige todas las rutas a <code>/app.py</code>.</li>
+    </ul>
+    <h3>Limitacion importante</h3>
+    <div class="nota-warning">SQLite en Vercel sirve para demostracion. Para produccion con escritura persistente conviene migrar a una base administrada.</div>
+  </div>
+</div>
+
+    </div>
+  </div>
+</body>
+</html>

@@ -11,6 +11,7 @@
 </div>
 
 <!-- Add ingredient to recipe -->
+{% if puede('recetas','editar') %}
 <div class="card mb-24">
   <div class="card-header"><span class="card-title">Agregar Ingrediente a Receta</span></div>
   <div class="card-body">
@@ -47,6 +48,7 @@
     </form>
   </div>
 </div>
+{% endif %}
 
 <!-- Recipes per plate -->
 {% for p in platos %}
@@ -67,7 +69,7 @@
           <th class="td-right">C. de compra</th>
           <th>U. compra</th>
           <th class="td-right">Costo total</th>
-          <th class="td-center">Acciones</th>
+          {% if puede('recetas','editar') %}<th class="td-center">Acciones</th>{% endif %}
         </tr>
       </thead>
       <tbody>
@@ -79,14 +81,15 @@
           <td class="td-right td-mono">S/ {{ "%.2f"|format(item['costo_compra']) }}</td>
           <td class="text-muted">{{ item['unidad_compra'] }}</td>
           <td class="td-right td-mono td-bold">S/ {{ "%.3f"|format(item['costo_total']) }}</td>
-          <td class="td-center">
+          {% if puede('recetas','editar') %}<td class="td-center">
             <button class="btn btn-ghost btn-sm" data-edit-toggle="rec-{{ item['id'] }}">Editar</button>
             <form method="POST" action="{{ url_for('receta_eliminar', rid=item['id']) }}"
                   style="display:inline" data-confirm="¿Quitar este ingrediente de la receta?">
               <button type="submit" class="btn btn-danger btn-sm">Quitar</button>
             </form>
-          </td>
+          </td>{% endif %}
         </tr>
+        {% if puede('recetas','editar') %}
         <tr class="edit-form-row" id="edit-rec-{{ item['id'] }}">
           <td colspan="7">
             <form method="POST" action="{{ url_for('receta_editar', rid=item['id']) }}">
@@ -110,13 +113,14 @@
             </form>
           </td>
         </tr>
+        {% endif %}
         {% endfor %}
       </tbody>
       <tfoot>
         <tr>
           <td colspan="5">TOTAL MATERIA PRIMA</td>
           <td class="td-right td-mono">S/ {{ "%.3f"|format(data['total']) }}</td>
-          <td></td>
+          {% if puede('recetas','editar') %}<td></td>{% endif %}
         </tr>
       </tfoot>
     </table>

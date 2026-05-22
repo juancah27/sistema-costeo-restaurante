@@ -12,6 +12,7 @@
 </div>
 
 <!-- New movement -->
+{% if puede('kardex','editar') %}
 <div class="card mb-24">
   <div class="card-header"><span class="card-title">Registrar Movimiento</span></div>
   <div class="card-body">
@@ -49,6 +50,7 @@
     </form>
   </div>
 </div>
+{% endif %}
 
 {% if last %}
 <div class="stats-grid mb-24">

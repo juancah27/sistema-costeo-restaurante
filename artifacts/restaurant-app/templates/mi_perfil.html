@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Mi perfil{% endblock %}
+{% block header_title %}Mi perfil{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">{{ usuario['nombre_completo'] }}</div>
+    <div class="page-sub">{{ usuario['username'] }} | {{ usuario['rol'] }}</div>
+  </div>
+</div>
+
+<div class="card mb-24">
+  <div class="card-header"><span class="card-title">Datos de usuario</span></div>
+  <div class="card-body">
+    <table>
+      <tr><th>Campo</th><th>Valor</th></tr>
+      <tr><td>Usuario</td><td>{{ usuario['username'] }}</td></tr>
+      <tr><td>Nombre completo</td><td>{{ usuario['nombre_completo'] }}</td></tr>
+      <tr><td>Rol</td><td><span class="badge role-{{ usuario['rol']|lower }}">{{ usuario['rol'] }}</span></td></tr>
+      <tr><td>Estado</td><td>{{ 'Activo' if usuario['activo'] else 'Inactivo' }}</td></tr>
+      <tr><td>Ultimo acceso</td><td>{{ usuario['ultimo_acceso'] or '-' }}</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><span class="card-title">Cambiar contrasena</span></div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('mi_perfil_password') }}">
+      <div class="form-grid">
+        <div class="form-group"><label>Contrasena actual</label><input type="password" name="password_actual" required></div>
+        <div class="form-group"><label>Nueva contrasena</label><input type="password" name="password_nueva" minlength="6" required></div>
+        <div class="form-group"><label>Confirmar nueva</label><input type="password" name="password_confirmar" minlength="6" required></div>
+        <div class="form-group" style="align-self:end"><button class="btn btn-primary">Actualizar</button></div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

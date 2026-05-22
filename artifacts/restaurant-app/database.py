@@ -1,6 +1,8 @@
 import os
 import sqlite3
 
+from werkzeug.security import generate_password_hash
+
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "restaurant.db")
 
@@ -231,6 +233,16 @@ def init_db():
             valor TEXT NOT NULL,
             descripcion TEXT
         );
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            nombre_completo TEXT NOT NULL,
+            rol TEXT NOT NULL CHECK(rol IN ('ADMIN','GERENTE','CONTADOR','COCINA','CONSULTA')),
+            activo INTEGER NOT NULL DEFAULT 1,
+            fecha_creacion TEXT NOT NULL DEFAULT (date('now')),
+            ultimo_acceso TEXT
+        );
         """
     )
     migrate_schema(db)
@@ -310,6 +322,7 @@ def _seed(db):
     _seed_kardex(db)
     _seed_configuracion(db)
     _seed_estudios_tiempo(db)
+    _seed_usuarios(db)
 
 
 def _id(db, table, name):
@@ -476,6 +489,26 @@ def _seed_estudios_tiempo(db):
             (plato_id, "Emplatar", chef, 4, "2025-01-01", "Presentacion final"),
         ]
         db.executemany("INSERT INTO estudios_tiempo (plato_id,tarea,empleado_id,tiempo_observado,fecha_registro,notas) VALUES (?,?,?,?,?,?)", rows)
+
+
+def _seed_usuarios(db):
+    if db.execute("SELECT COUNT(*) FROM usuarios").fetchone()[0] > 0:
+        return
+    usuarios = [
+        ("admin", "admin123", "Administrador", "ADMIN"),
+        ("gerente", "gerente1", "Gerente General", "GERENTE"),
+        ("conta", "conta1", "Contador", "CONTADOR"),
+        ("cocina", "cocina1", "Jefe de Cocina", "COCINA"),
+        ("consulta", "consulta1", "Consultor", "CONSULTA"),
+    ]
+    for username, password, nombre, rol in usuarios:
+        db.execute(
+            """
+            INSERT INTO usuarios (username, password_hash, nombre_completo, rol, activo)
+            VALUES (?,?,?,?,1)
+            """,
+            (username, generate_password_hash(password), nombre, rol),
+        )
 
 
 def calcular_depreciacion_mensual(db):

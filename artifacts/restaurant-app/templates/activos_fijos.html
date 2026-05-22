@@ -10,6 +10,7 @@
   </div>
 </div>
 
+{% if puede('activos','editar') %}
 <div class="card mb-24">
   <div class="card-header"><span class="card-title">Nuevo Activo Fijo</span></div>
   <div class="card-body">
@@ -42,6 +43,7 @@
     </form>
   </div>
 </div>
+{% endif %}
 
 <div class="card mb-24">
   <div class="card-header">
@@ -59,7 +61,7 @@
           <th class="td-right">Dep. Anual</th>
           <th class="td-right">Dep. Mensual</th>
           <th>Estado</th>
-          <th class="td-center">Acciones</th>
+          {% if puede('activos','editar') %}<th class="td-center">Acciones</th>{% endif %}
         </tr>
       </thead>
       <tbody>
@@ -72,14 +74,15 @@
           <td class="td-right td-mono">S/ {{ "%.2f"|format(a['dep_anual']) }}</td>
           <td class="td-right td-mono td-bold">S/ {{ "%.2f"|format(a['dep_mensual']) }}</td>
           <td><span class="badge badge-success">Activo</span></td>
-          <td class="td-center">
+          {% if puede('activos','editar') %}<td class="td-center">
             <button class="btn btn-ghost btn-sm" data-edit-toggle="act-{{ a['id'] }}">Editar</button>
             <form method="POST" action="{{ url_for('activo_eliminar', aid=a['id']) }}"
                   style="display:inline" data-confirm="¿Desactivar este activo? No se eliminará de la BD.">
               <button type="submit" class="btn btn-danger btn-sm">Desactivar</button>
             </form>
-          </td>
+          </td>{% endif %}
         </tr>
+        {% if puede('activos','editar') %}
         <tr class="edit-form-row" id="edit-act-{{ a['id'] }}">
           <td colspan="8">
             <form method="POST" action="{{ url_for('activo_editar', aid=a['id']) }}">
@@ -94,6 +97,7 @@
             </form>
           </td>
         </tr>
+        {% endif %}
         {% endfor %}
       </tbody>
       <tfoot>

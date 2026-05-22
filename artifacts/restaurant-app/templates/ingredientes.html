@@ -10,6 +10,7 @@
   </div>
 </div>
 
+{% if puede('ingredientes','editar') %}
 <div class="card mb-24">
   <div class="card-header"><span class="card-title">Nuevo Ingrediente</span></div>
   <div class="card-body">
@@ -28,12 +29,13 @@
     </form>
   </div>
 </div>
+{% endif %}
 
 <div class="card">
   <div class="card-header"><span class="card-title">Lista de Ingredientes</span></div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Ingrediente</th><th class="td-right">Costo</th><th>Compra</th><th>Uso</th><th class="td-right">Equiv.</th><th class="td-right">Rend.</th><th class="td-right">% util</th><th>Kardex</th><th>Acciones</th></tr></thead>
+      <thead><tr><th>Ingrediente</th><th class="td-right">Costo</th><th>Compra</th><th>Uso</th><th class="td-right">Equiv.</th><th class="td-right">Rend.</th><th class="td-right">% util</th><th>Kardex</th>{% if puede('ingredientes','editar') %}<th>Acciones</th>{% endif %}</tr></thead>
       <tbody>
       {% for i in ingredientes %}
         {% set equiv = i['equivalencia'] or 1 %}
@@ -47,13 +49,14 @@
           <td class="td-right td-mono">{{ "%.2f"|format(rend) }}</td>
           <td class="td-right td-mono">{{ "%.1f"|format((rend / equiv) * 100) }}%</td>
           <td><a class="btn btn-secondary btn-sm" href="{{ url_for('kardex', ing_id=i['id']) }}">Kardex</a></td>
-          <td>
+          {% if puede('ingredientes','editar') %}<td>
             <button class="btn btn-ghost btn-sm" data-edit-toggle="ing-{{ i['id'] }}">Editar</button>
             <form method="POST" action="{{ url_for('ingrediente_eliminar', iid=i['id']) }}" style="display:inline" data-confirm="Eliminar ingrediente?">
               <button class="btn btn-danger btn-sm">Eliminar</button>
             </form>
-          </td>
+          </td>{% endif %}
         </tr>
+        {% if puede('ingredientes','editar') %}
         <tr class="edit-form-row" id="edit-ing-{{ i['id'] }}">
           <td colspan="9">
             <form method="POST" action="{{ url_for('ingrediente_editar', iid=i['id']) }}">
@@ -71,6 +74,7 @@
             </form>
           </td>
         </tr>
+        {% endif %}
       {% endfor %}
       </tbody>
     </table>

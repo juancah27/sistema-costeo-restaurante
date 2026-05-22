@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Acceso denegado{% endblock %}
+{% block header_title %}Acceso denegado{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="page-title">No tiene permisos para acceder a este modulo</div>
+    <p class="page-sub mb-24">Su rol actual no permite ver o modificar esta seccion.</p>
+    <a class="btn btn-primary" href="{{ url_for('dashboard') }}">Volver al Dashboard</a>
+  </div>
+</div>
+{% endblock %}

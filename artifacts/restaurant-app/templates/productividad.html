@@ -10,7 +10,7 @@
 </div>
 <form method="POST" action="{{ url_for('productividad_guardar') }}">
 <div class="card">
-  <div class="card-header"><span class="card-title">Parametros por Plato</span><button class="btn btn-primary btn-sm">Guardar todo</button></div>
+  <div class="card-header"><span class="card-title">Parametros por Plato</span>{% if puede('productividad','editar') %}<button class="btn btn-primary btn-sm">Guardar todo</button>{% endif %}</div>
   <div class="table-wrap">
     <table>
       <thead><tr><th>Plato</th><th class="td-right">Min teorico</th><th class="td-right">Min real</th><th>Usar real</th><th>Dias</th><th>Horas</th><th>Prod %</th><th class="td-right">Costo/min</th><th class="td-right">MOD</th><th>Estudio</th></tr></thead>
@@ -19,12 +19,12 @@
         {% set pr = item['prod'] %}
         <tr>
           <td class="td-bold">{{ item['plato']['nombre'] }}</td>
-          <td><input type="number" name="minutos_{{ item['plato']['id'] }}" value="{{ pr['minutos_por_plato'] if pr else 20 }}" step="0.5" min="0.5"></td>
+          <td><input type="number" name="minutos_{{ item['plato']['id'] }}" value="{{ pr['minutos_por_plato'] if pr else 20 }}" step="0.5" min="0.5" {% if not puede('productividad','editar') %}disabled{% endif %}></td>
           <td class="td-right td-mono">{{ "%.2f"|format(item['tiempo_real']) }}</td>
-          <td class="td-center"><input type="checkbox" name="usar_tiempo_real_{{ item['plato']['id'] }}" {% if pr and pr['usar_tiempo_real'] %}checked{% endif %}></td>
-          <td><input type="number" name="dias_{{ item['plato']['id'] }}" value="{{ pr['dias_laborables'] if pr else 26 }}" min="1" max="31"></td>
-          <td><input type="number" name="horas_{{ item['plato']['id'] }}" value="{{ pr['horas_por_dia'] if pr else 10 }}" step="0.5"></td>
-          <td><input type="number" name="productividad_{{ item['plato']['id'] }}" value="{{ pr['productividad'] if pr else 85 }}" min="1" max="100"></td>
+          <td class="td-center"><input type="checkbox" name="usar_tiempo_real_{{ item['plato']['id'] }}" {% if pr and pr['usar_tiempo_real'] %}checked{% endif %} {% if not puede('productividad','editar') %}disabled{% endif %}></td>
+          <td><input type="number" name="dias_{{ item['plato']['id'] }}" value="{{ pr['dias_laborables'] if pr else 26 }}" min="1" max="31" {% if not puede('productividad','editar') %}disabled{% endif %}></td>
+          <td><input type="number" name="horas_{{ item['plato']['id'] }}" value="{{ pr['horas_por_dia'] if pr else 10 }}" step="0.5" {% if not puede('productividad','editar') %}disabled{% endif %}></td>
+          <td><input type="number" name="productividad_{{ item['plato']['id'] }}" value="{{ pr['productividad'] if pr else 85 }}" min="1" max="100" {% if not puede('productividad','editar') %}disabled{% endif %}></td>
           <td class="td-right td-mono">S/ {{ "%.4f"|format(item['costo_min']) }}</td>
           <td class="td-right td-mono td-bold">S/ {{ "%.4f"|format(item['mod']) }}</td>
           <td><a class="btn btn-secondary btn-sm" href="{{ url_for('estudios_tiempo', plato_id=item['plato']['id']) }}">Ver</a></td>

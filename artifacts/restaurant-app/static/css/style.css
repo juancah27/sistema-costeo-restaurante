@@ -512,6 +512,63 @@ input[type="number"] { font-family: 'SF Mono', 'Fira Code', monospace; }
 .font-mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; }
 .bold { font-weight: 700; }
 
+.user-chip {
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  padding: 24px;
+}
+
+.login-card {
+  width: min(420px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 32px;
+}
+
+.login-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.login-card h1 {
+  font-size: 22px;
+  margin-bottom: 2px;
+}
+
+.login-card p {
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+.role-admin { background: var(--accent-light); color: var(--accent); }
+.role-gerente { background: var(--info-light); color: var(--info); }
+.role-contador { background: var(--success-light); color: var(--success); }
+.role-cocina { background: var(--warning-light); color: var(--warning); }
+.role-consulta { background: var(--bg); color: var(--muted); }
+
 /* ─── Overlay ──────────────────────────────────────────────────────────────── */
 .overlay {
   display: none;

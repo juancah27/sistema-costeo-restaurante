@@ -11,6 +11,7 @@
   {% endfor %}
 </div>
 
+{% if puede('empleados','editar') %}
 <div class="card mb-24">
   <div class="card-header"><span class="card-title">Nuevo Empleado</span></div>
   <div class="card-body">
@@ -29,12 +30,13 @@
     </form>
   </div>
 </div>
+{% endif %}
 
 <div class="card">
   <div class="card-header"><span class="card-title">Lista de Personal</span><span class="badge badge-muted">Total: S/ {{ "%.2f"|format(planilla_total) }}</span></div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Nombre</th><th>Cargo</th><th>Tipo</th><th class="td-right">Total</th><th>Acciones</th></tr></thead>
+      <thead><tr><th>Nombre</th><th>Cargo</th><th>Tipo</th><th class="td-right">Total</th>{% if puede('empleados','editar') %}<th>Acciones</th>{% endif %}</tr></thead>
       <tbody>
       {% for e in empleados %}
         {% set total_e = e['sueldo_base'] + e['gratificaciones'] + e['bonificaciones'] + e['seguro'] + e['cts'] %}
@@ -42,8 +44,9 @@
           <td class="td-bold">{{ e['nombre'] }}</td><td>{{ e['cargo'] or '-' }}</td>
           <td><span class="badge {% if e['clasificacion']=='MOD' %}badge-success{% elif e['clasificacion']=='MOI' %}badge-warning{% elif e['clasificacion']=='ADMIN' %}badge-muted{% else %}badge-danger{% endif %}">{{ e['clasificacion'] }}</span></td>
           <td class="td-right td-mono">S/ {{ "%.2f"|format(total_e) }}</td>
-          <td><button class="btn btn-ghost btn-sm" data-edit-toggle="emp-{{ e['id'] }}">Editar</button></td>
+          {% if puede('empleados','editar') %}<td><button class="btn btn-ghost btn-sm" data-edit-toggle="emp-{{ e['id'] }}">Editar</button></td>{% endif %}
         </tr>
+        {% if puede('empleados','editar') %}
         <tr class="edit-form-row" id="edit-emp-{{ e['id'] }}"><td colspan="5">
           <form method="POST" action="{{ url_for('empleado_editar', eid=e['id']) }}"><div class="form-grid">
             <div class="form-group"><label>Nombre</label><input name="nombre" value="{{ e['nombre'] }}" required></div>
@@ -57,9 +60,10 @@
             <div class="form-group" style="align-self:end"><button class="btn btn-primary btn-sm">Guardar</button></div>
           </div></form>
         </td></tr>
+        {% endif %}
       {% endfor %}
       </tbody>
-      <tfoot>{% for key in ['MOD','MOI','ADMIN','VENTAS'] %}<tr><td colspan="3">Subtotal {{ key }}</td><td class="td-right td-mono">S/ {{ "%.2f"|format(subtotales[key]) }}</td><td></td></tr>{% endfor %}</tfoot>
+      <tfoot>{% for key in ['MOD','MOI','ADMIN','VENTAS'] %}<tr><td colspan="3">Subtotal {{ key }}</td><td class="td-right td-mono">S/ {{ "%.2f"|format(subtotales[key]) }}</td>{% if puede('empleados','editar') %}<td></td>{% endif %}</tr>{% endfor %}</tfoot>
     </table>
   </div>
 </div>

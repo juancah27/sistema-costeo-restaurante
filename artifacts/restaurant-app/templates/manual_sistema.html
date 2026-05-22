@@ -391,7 +391,7 @@ AJUSTE: saldo_cantidad = cantidad; saldo_valor = cantidad * costo_unitario</pre>
     </table>
     <h3>Mensajes de usuario</h3>
     <p>El sistema usa <code>flash()</code> con categorias <code>success</code>, <code>warning</code> y <code>danger</code>, renderizadas en <code>base.html</code>.</p>
-    <div class="nota-info">No se implementa autenticacion de usuarios ni roles. El acceso es abierto dentro del despliegue.</div>
+    <div class="nota-info">Se implementa autenticacion con sesiones Flask y roles por modulo. Las rutas protegidas redirigen a login o muestran 403 segun corresponda.</div>
   </div>
 
   <div class="pagina-a4" data-page="17" data-header="Manual de Sistema - Sistema de Costeo">

@@ -10,6 +10,7 @@
   </div>
 </div>
 
+{% if puede('gastos_financieros','editar') %}
 <div class="card mb-24">
   <div class="card-header"><span class="card-title">Nuevo Gasto</span></div>
   <div class="card-body">
@@ -22,6 +23,7 @@
     </form>
   </div>
 </div>
+{% endif %}
 
 <div class="card">
   <div class="card-header">
@@ -30,20 +32,21 @@
   </div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Concepto</th><th class="td-right">Monto Mensual</th><th class="td-center">Acciones</th></tr></thead>
+      <thead><tr><th>Concepto</th><th class="td-right">Monto Mensual</th>{% if puede('gastos_financieros','editar') %}<th class="td-center">Acciones</th>{% endif %}</tr></thead>
       <tbody>
         {% for item in items %}
         <tr>
           <td class="td-bold">{{ item['concepto'] }}</td>
           <td class="td-right td-mono">S/ {{ "%.2f"|format(item['monto']) }}</td>
-          <td class="td-center">
+          {% if puede('gastos_financieros','editar') %}<td class="td-center">
             <button class="btn btn-ghost btn-sm" data-edit-toggle="gf-{{ item['id'] }}">Editar</button>
             <form method="POST" action="{{ url_for('gf_eliminar', gid=item['id']) }}"
                   style="display:inline" data-confirm="¿Eliminar este gasto?">
               <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
             </form>
-          </td>
+          </td>{% endif %}
         </tr>
+        {% if puede('gastos_financieros','editar') %}
         <tr class="edit-form-row" id="edit-gf-{{ item['id'] }}">
           <td colspan="3">
             <form method="POST" action="{{ url_for('gf_editar', gid=item['id']) }}">
@@ -55,9 +58,10 @@
             </form>
           </td>
         </tr>
+        {% endif %}
         {% endfor %}
       </tbody>
-      <tfoot><tr><td>TOTAL</td><td class="td-right td-mono">S/ {{ "%.2f"|format(total) }}</td><td></td></tr></tfoot>
+      <tfoot><tr><td>TOTAL</td><td class="td-right td-mono">S/ {{ "%.2f"|format(total) }}</td>{% if puede('gastos_financieros','editar') %}<td></td>{% endif %}</tr></tfoot>
     </table>
   </div>
 </div>

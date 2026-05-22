@@ -35,12 +35,12 @@
             <td class="td-right">
               <input type="number" name="cantidad_{{ p['id'] }}"
                      value="{{ pr['cantidad_mensual'] if pr else 0 }}"
-                     min="0" style="width:90px;text-align:right">
+                     min="0" style="width:90px;text-align:right" {% if not puede('proyeccion','editar') %}disabled{% endif %}>
             </td>
             <td class="td-right">
               <input type="number" name="precio_{{ p['id'] }}"
                      value="{{ pr['precio_referencial'] if pr else 0 }}"
-                     step="0.01" min="0" style="width:90px;text-align:right">
+                     step="0.01" min="0" style="width:90px;text-align:right" {% if not puede('proyeccion','editar') %}disabled{% endif %}>
             </td>
             <td class="td-right td-mono">
               {% if pr %}S/ {{ "%.2f"|format(pr['cantidad_mensual'] * pr['precio_referencial']) }}{% else %}—{% endif %}
@@ -68,7 +68,9 @@
       </table>
     </div>
     <div class="card-body" style="padding-top:12px">
+      {% if puede('proyeccion','editar') %}
       <button type="submit" class="btn btn-primary">Guardar Proyección</button>
+      {% endif %}
     </div>
   </form>
 </div>

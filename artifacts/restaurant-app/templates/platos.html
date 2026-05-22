@@ -11,6 +11,7 @@
 </div>
 
 <!-- Add form -->
+{% if puede('platos','editar') %}
 <div class="card mb-24">
   <div class="card-header"><span class="card-title">Nuevo Plato</span></div>
   <div class="card-body">
@@ -31,6 +32,7 @@
     </form>
   </div>
 </div>
+{% endif %}
 
 <div class="card">
   <div class="card-header"><span class="card-title">Lista de Platos</span></div>
@@ -53,10 +55,11 @@
             {% else %}<span class="text-muted">—</span>{% endif %}
           </td>
           <td class="td-center">
-            <button class="btn btn-ghost btn-sm" data-edit-toggle="plato-{{ p['id'] }}">Editar</button>
+            {% if puede('platos','editar') %}<button class="btn btn-ghost btn-sm" data-edit-toggle="plato-{{ p['id'] }}">Editar</button>{% endif %}
             <a href="{{ url_for('resultado', plato_id=p['id']) }}" class="btn btn-primary btn-sm">Resultado</a>
           </td>
         </tr>
+        {% if puede('platos','editar') %}
         <tr class="edit-form-row" id="edit-plato-{{ p['id'] }}">
           <td colspan="5">
             <form method="POST" action="{{ url_for('plato_editar', pid=p['id']) }}">
@@ -76,6 +79,7 @@
             </form>
           </td>
         </tr>
+        {% endif %}
         {% endfor %}
       </tbody>
     </table>
