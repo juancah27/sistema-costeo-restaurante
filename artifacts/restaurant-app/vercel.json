@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "buildCommand": "python -m compileall app.py database.py calculos.py",
   "rewrites": [
     {
       "source": "/(.*)",
