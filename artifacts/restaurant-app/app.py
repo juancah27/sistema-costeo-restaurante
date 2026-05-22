@@ -719,6 +719,29 @@ def ayuda():
     return render_template("ayuda.html", modulos=modulos)
 
 
+@app.route("/manual-sistema")
+def manual_sistema():
+    db = g.db
+    config = obtener_configuracion(db)
+    schemas = db.execute(
+        """
+        SELECT name, sql
+        FROM sqlite_master
+        WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+        ORDER BY name
+        """
+    ).fetchall()
+    plato = db.execute("SELECT * FROM platos WHERE nombre = 'Lomo Saltado'").fetchone()
+    ejemplo = calcular_estado_resultados(db, plato["id"], 35) if plato else None
+    return render_template(
+        "manual_sistema.html",
+        config=config,
+        schemas=schemas,
+        plato=plato,
+        ejemplo=ejemplo,
+    )
+
+
 # ─── Kardex ───────────────────────────────────────────────────────────────────
 
 @app.route("/kardex/<int:ing_id>")

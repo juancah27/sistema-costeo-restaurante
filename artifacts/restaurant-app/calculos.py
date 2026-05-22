@@ -1,4 +1,10 @@
 def _money(value, digits=4):
+    """
+    Normaliza valores numericos para presentacion monetaria.
+    Formula: valor_redondeado = round(valor, digitos).
+    Parametros: value numerico y digits cantidad de decimales.
+    Retorna: numero float redondeado.
+    """
     return round(float(value or 0), digits)
 
 
