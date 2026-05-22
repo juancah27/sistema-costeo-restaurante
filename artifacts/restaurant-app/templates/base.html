@@ -63,6 +63,7 @@
 
       {% if puede('manuales','ver') %}
       <div class="nav-section" style="margin-top:8px">Documentacion</div>
+      <a href="{{ url_for('manual_usuario') }}" class="nav-link {% if request.endpoint == 'manual_usuario' %}active{% endif %}">Manual de Usuario</a>
       <a href="{{ url_for('manual_sistema') }}" class="nav-link {% if request.endpoint == 'manual_sistema' %}active{% endif %}">Manual de Sistema</a>
       <a href="{{ url_for('manual_sistema_pdf') }}" class="nav-link {% if request.endpoint == 'manual_sistema_pdf' %}active{% endif %}">Manual PDF limpio</a>
       {% endif %}

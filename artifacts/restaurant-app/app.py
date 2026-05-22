@@ -998,6 +998,14 @@ def manual_sistema():
     return render_template("manual_sistema.html", **_manual_context(db))
 
 
+@app.route("/manual-usuario")
+@login_requerido
+@permiso_requerido("manuales", "lectura")
+def manual_usuario():
+    db = g.db
+    return render_template("manual_usuario.html", **_manual_context(db))
+
+
 @app.route("/manual-sistema/pdf")
 @login_requerido
 @permiso_requerido("manuales", "lectura")

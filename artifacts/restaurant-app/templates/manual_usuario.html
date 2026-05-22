@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% block title %}Manual de Usuario{% endblock %}
+{% block header_title %}Manual de Usuario{% endblock %}
+
+{% block content %}
+<div class="manual-container">
+  <div class="pagina-a4 pagina-portada" data-page="">
+    <div class="linea-decorativa"></div>
+    <h1>&#128216; Manual de Usuario</h1>
+    <h2>Sistema de Costeo para Restaurante</h2>
+    <div class="linea-decorativa"></div>
+    <div class="datos-portada">
+      <p><strong>Version:</strong> 1.0</p>
+      <p><strong>Fecha:</strong> Mayo 2026</p>
+      <p><strong>Negocio:</strong> {{ config.nombre_negocio }}</p>
+      <p><strong>Dirigido a:</strong> usuarios operativos, administrativos y de consulta</p>
+    </div>
+  </div>
+
+  <div class="pagina-a4" data-page="i" data-header="Manual de Usuario - Sistema de Costeo">
+    <h2>&#128209; Indice</h2>
+    {% set items = [
+      ("1. Introduccion", "1"),
+      ("2. Inicio de sesion y perfil", "2"),
+      ("3. Roles y permisos", "3"),
+      ("4. Flujo recomendado de trabajo", "4"),
+      ("5. Dashboard y platos", "5"),
+      ("6. Ingredientes, conversiones y recetas", "6"),
+      ("7. Proyeccion de demanda", "7"),
+      ("8. Empleados, productividad y tiempos", "8"),
+      ("9. CIF y activos fijos", "9"),
+      ("10. Gastos administrativos, ventas y financieros", "10"),
+      ("11. Kardex", "11"),
+      ("12. Estado de resultados", "12"),
+      ("13. Configuracion y usuarios", "13"),
+      ("14. Buenas practicas", "14"),
+      ("15. Glosario", "15")
+    ] %}
+    {% for titulo, pagina in items %}
+      <div class="indice-item"><span class="titulo">{{ titulo }}</span><span class="num-pagina">{{ pagina }}</span></div>
+    {% endfor %}
+    <div class="nota-info">
+      Este manual explica que puede hacer cada usuario dentro del sistema. No contiene codigo ni instrucciones tecnicas de programacion.
+    </div>
+  </div>
+
+  <div class="pagina-a4" data-page="1" data-header="Manual de Usuario - Sistema de Costeo">
+    <h2>1. Introduccion</h2>
+    <h3>Que es el sistema</h3>
+    <p>El Sistema de Costeo para Restaurante ayuda a ordenar la informacion del negocio para calcular costos, precios y utilidad por plato. Reune en una sola herramienta los ingredientes, recetas, personal, gastos, inventario y estado de resultados.</p>
+    <h3>Para que sirve</h3>
+    <table>
+      <tr><th>Necesidad</th><th>Como ayuda el sistema</th></tr>
+      <tr><td>Saber cuanto cuesta un plato</td><td>Calcula materia prima, mano de obra, CIF, gastos e IGV.</td></tr>
+      <tr><td>Controlar insumos</td><td>Registra ingredientes, unidades, conversiones y movimientos Kardex.</td></tr>
+      <tr><td>Revisar rentabilidad</td><td>Muestra precio final sugerido, utilidad y estructura de costos.</td></tr>
+      <tr><td>Organizar informacion</td><td>Centraliza datos operativos, administrativos y financieros.</td></tr>
+    </table>
+    <div class="nota-info">Use el sistema como una hoja de costos viva: mientras mas actualizados esten los datos, mas confiables seran los precios.</div>
+  </div>
+
+  <div class="pagina-a4" data-page="2" data-header="Manual de Usuario - Sistema de Costeo">
+    <h2>2. Inicio de sesion y perfil</h2>
+    <h3>Ingresar al sistema</h3>
+    <ol>
+      <li>Abra la direccion de la aplicacion en el navegador.</li>
+      <li>Escriba su usuario y contrasena.</li>
+      <li>Presione <strong>Ingresar al sistema</strong>.</li>
+      <li>Si los datos son correctos, vera el Dashboard.</li>
+    </ol>
+    <h3>Cambiar contrasena</h3>
+    <ol>
+      <li>Presione <strong>Mi perfil</strong> en la parte superior.</li>
+      <li>Ingrese su contrasena actual.</li>
+      <li>Escriba la nueva contrasena y confirmela.</li>
+      <li>Guarde los cambios.</li>
+    </ol>
+    <h3>Cerrar sesion</h3>
+    <p>Presione <strong>Cerrar sesion</strong>. Esto evita que otra persona use su cuenta en el mismo equipo.</p>
+    <div class="nota-warning">No comparta su contrasena. Cada usuario debe trabajar con su propia cuenta para respetar permisos y responsabilidades.</div>
+  </div>
+
+  <div class="pagina-a4" data-page="3" data-header="Manual de Usuario - Sistema de Costeo">
+    <h2>3. Roles y permisos</h2>
+    <p>El sistema muestra diferentes modulos segun el rol del usuario. Algunas cuentas pueden crear y editar informacion; otras solo pueden consultar.</p>
+    <table>
+      <tr><th>Rol</th><th>Que puede hacer</th><th>Uso recomendado</th></tr>
+      <tr><td>ADMIN</td><td>Acceso completo, usuarios y configuracion.</td><td>Responsable del sistema.</td></tr>
+      <tr><td>GERENTE</td><td>Gestion operativa y costos principales.</td><td>Control del negocio y toma de decisiones.</td></tr>
+      <tr><td>CONTADOR</td><td>Costos, gastos, planilla y resultados.</td><td>Revision contable y financiera.</td></tr>
+      <tr><td>COCINA</td><td>Platos, ingredientes, recetas, tiempos y Kardex.</td><td>Operacion diaria de cocina.</td></tr>
+      <tr><td>CONSULTA</td><td>Visualizacion sin edicion.</td><td>Revision o auditoria.</td></tr>
+    </table>
+    <h3>Lectura y edicion</h3>
+    <p>Si un usuario tiene permiso de lectura, vera el modulo pero no vera botones de crear, editar o eliminar. Si tiene permiso total, podra registrar y modificar datos.</p>
+    <div class="nota-info">Si no aparece un modulo en el menu, significa que su rol no tiene acceso a esa seccion.</div>
+  </div>
+
+  <div class="pagina-a4" data-page="4" data-header="Manual de Usuario - Sistema de Costeo">
+    <h2>4. Flujo recomendado de trabajo</h2>
+    <p>Para obtener resultados confiables, cargue la informacion en este orden:</p>
+    <table>
+      <tr><th>Paso</th><th>Modulo</th><th>Objetivo</th></tr>
+      <tr><td>1</td><td>Configuracion</td><td>Definir nombre del negocio, moneda e IGV.</td></tr>
+      <tr><td>2</td><td>Ingredientes</td><td>Registrar insumos, costo de compra, unidad y rendimiento.</td></tr>
+      <tr><td>3</td><td>Platos</td><td>Crear los productos o platos que se venderan.</td></tr>
+      <tr><td>4</td><td>Recetas</td><td>Relacionar ingredientes y cantidades con cada plato.</td></tr>
+      <tr><td>5</td><td>Proyeccion</td><td>Indicar la demanda mensual estimada por plato.</td></tr>
+      <tr><td>6</td><td>Empleados y Productividad</td><td>Registrar planilla y tiempos de preparacion.</td></tr>
+      <tr><td>7</td><td>CIF, activos y gastos</td><td>Completar costos indirectos y gastos del negocio.</td></tr>
+      <tr><td>8</td><td>Estado de Resultados</td><td>Revisar costo total, utilidad, IGV y precio final.</td></tr>
+    </table>
+    <div class="nota-warning">Si cambia un costo importante, revise nuevamente el Estado de Resultados del plato afectado.</div>
+  </div>
+
+  <div class="pagina-a4" data-page="5" data-header="Manual de Usuario - Sistema de Costeo">
+    <h2>5. Dashboard y platos</h2>
+    <h3>Dashboard</h3>
+    <p>El Dashboard es la primera vista despues de iniciar sesion. Resume los platos registrados y permite entrar rapidamente al resultado de cada uno.</p>
+    <table>
+      <tr><th>Que permite hacer</th><th>Cuando usarlo</th><th>Quien lo usa</th></tr>
+      <tr><td>Revisar resumen general.</td><td>Al iniciar el trabajo o revisar precios.</td><td>Todos los roles con acceso.</td></tr>
+      <tr><td>Entrar al resultado de un plato.</td><td>Cuando se desea ver costo y precio final.</td><td>Gerencia, contabilidad y consulta.</td></tr>
+    </table>
+    <h3>Platos</h3>
+    <ol>
+      <li>Entre a <strong>Platos</strong>.</li>
+      <li>Registre nombre, descripcion y categoria.</li>
+      <li>Guarde el plato.</li>
+      <li>Luego complete su receta y proyeccion.</li>
+    </ol>
+    <div class="nota-info">Cree primero el plato aunque todavia no tenga todos sus costos. Despues podra completar los demas modulos.</div>
+  </div>
+
+  <div class="pagina-a4" data-page="6" data-header="Manual de Usuario - Sistema de Costeo">
+    <h2>6. Ingredientes, conversiones y recetas</h2>
+    <h3>Ingredientes</h3>
+    <p>Registre cada insumo con su costo de compra, unidad, unidad de medida y rendimiento. El rendimiento permite considerar mermas.</p>
+    <ol>
+      <li>Entre a <strong>Ingredientes</strong>.</li>
+      <li>Ingrese nombre, costo de compra y unidad de compra.</li>
+      <li>Complete unidad de medida y rendimiento util.</li>
+      <li>Guarde el ingrediente.</li>
+    </ol>
+    <h3>Recetas</h3>
+    <p>La receta indica que ingredientes usa cada plato y en que cantidad.</p>
+    <ol>
+      <li>Entre a <strong>Recetas</strong>.</li>
+      <li>Seleccione el plato.</li>
+      <li>Agregue ingrediente, cantidad y unidad usada.</li>
+      <li>Revise que todos los insumos del plato esten completos.</li>
+    </ol>
+    <div class="nota-warning">Si un ingrediente no tiene rendimiento correcto, el costo de materia prima puede quedar subestimado.</div>
+  </div>
+
+  <div class="pagina-a4" data-page="7" data-header="Manual de Usuario - Sistema de Costeo">
+    <h2>7. Proyeccion de demanda</h2>
+    <p>La proyeccion indica cuantas unidades se espera vender o producir por plato. Este dato se usa para distribuir costos y calcular participacion.</p>
+    <table>
+      <tr><th>Campo</th><th>Significado</th></tr>
+      <tr><td>Cantidad mensual</td><td>Unidades esperadas del plato durante el mes.</td></tr>
+      <tr><td>% participacion</td><td>Peso del plato dentro de la demanda total.</td></tr>
+    </table>
+    <h3>Pasos</h3>
+    <ol>
+      <li>Entre a <strong>Proyeccion</strong>.</li>
+      <li>Revise la lista de platos.</li>
+      <li>Ingrese la cantidad mensual esperada.</li>
+      <li>Guarde la proyeccion.</li>
+    </ol>
+    <div class="nota-info">Use cantidades realistas. Una proyeccion muy alta o muy baja cambia la distribucion de costos por plato.</div>
+  </div>
+
+  <div class="pagina-a4" data-page="8" data-header="Manual de Usuario - Sistema de Costeo">
+    <h2>8. Empleados, productividad y tiempos</h2>
+    <h3>Empleados</h3>
+    <p>Registre al personal y su clasificacion. Esta clasificacion define donde entra su costo.</p>
+    <table>
+      <tr><th>Clasificacion</th><th>Uso en el sistema</th></tr>
+      <tr><td>MOD</td><td>Mano de obra directa. Se usa para costo por minuto de produccion.</td></tr>
+      <tr><td>MOI</td><td>Mano de obra indirecta. Se distribuye como CIF.</td></tr>
+      <tr><td>ADMIN</td><td>Se suma a gastos administrativos.</td></tr>
+      <tr><td>VENTAS</td><td>Se suma a gastos de ventas.</td></tr>
+    </table>
+    <h3>Productividad y estudios de tiempo</h3>
+    <p>Productividad guarda minutos teoricos por plato. Estudios de Tiempo permite registrar tareas reales como preparacion, coccion o emplatado.</p>
+    <ol>
+      <li>Defina el tiempo teorico en <strong>Productividad / MOD</strong>.</li>
+      <li>Registre mediciones reales en <strong>Estudios Tiempo</strong>.</li>
+      <li>Active el uso de tiempo real si desea que el calculo tome las mediciones.</li>
+    </ol>
+  </div>
+
+  <div class="pagina-a4" data-page="9" data-header="Manual de Usuario - Sistema de Costeo">
+    <h2>9. CIF y activos fijos</h2>
+    <h3>CIF</h3>
+    <p>Los Costos Indirectos de Fabricacion agrupan costos necesarios para producir, aunque no pertenezcan a un plato especifico.</p>
+    <table>
+      <tr><th>Categoria</th><th>Ejemplos</th></tr>
+      <tr><td>Servicio</td><td>Gas, luz, agua.</td></tr>
+      <tr><td>Tasa municipal</td><td>Derechos o pagos municipales asociados a la operacion.</td></tr>
+      <tr><td>General</td><td>Alquiler, mantenimiento u otros costos indirectos.</td></tr>
+    </table>
+    <h3>Activos fijos</h3>
+    <p>Los activos fijos son bienes como cocina, refrigeradora, horno o equipos. El sistema calcula depreciacion mensual y la muestra como parte del CIF.</p>
+    <ol>
+      <li>Entre a <strong>Activos Fijos</strong>.</li>
+      <li>Registre nombre, costo y vida util.</li>
+      <li>Revise la depreciacion mensual calculada.</li>
+    </ol>
+    <div class="nota-info">La depreciacion se muestra separada para que el usuario entienda que no es un recibo de servicio, sino desgaste del activo.</div>
+  </div>
+
+  <div class="pagina-a4" data-page="10" data-header="Manual de Usuario - Sistema de Costeo">
+    <h2>10. Gastos administrativos, ventas y financieros</h2>
+    <p>Estos gastos no forman parte directa de la produccion, pero si influyen en el precio final del plato.</p>
+    <table>
+      <tr><th>Modulo</th><th>Que registra</th><th>Ejemplos</th></tr>
+      <tr><td>G. Administrativos</td><td>Gastos de oficina, gestion y regulacion.</td><td>Contador, permisos, inspecciones.</td></tr>
+      <tr><td>G. de Ventas</td><td>Gastos para vender o promocionar.</td><td>Marketing, delivery, publicidad.</td></tr>
+      <tr><td>G. Financieros</td><td>Gastos por financiamiento.</td><td>Intereses, comisiones bancarias.</td></tr>
+    </table>
+    <h3>Pasos generales</h3>
+    <ol>
+      <li>Entre al modulo correspondiente.</li>
+      <li>Registre concepto, monto y categoria cuando aplique.</li>
+      <li>Guarde el registro.</li>
+      <li>Revise el impacto en el Estado de Resultados.</li>
+    </ol>
+    <div class="nota-info">La planilla ADMIN y VENTAS se agrega automaticamente desde Empleados, por eso no debe duplicarse manualmente.</div>
+  </div>
+
+  <div class="pagina-a4" data-page="11" data-header="Manual de Usuario - Sistema de Costeo">
+    <h2>11. Kardex</h2>
+    <p>El Kardex ayuda a controlar movimientos de inventario por ingrediente. Permite registrar entradas, salidas y ajustar el costo promedio ponderado.</p>
+    <table>
+      <tr><th>Movimiento</th><th>Cuando usarlo</th></tr>
+      <tr><td>Entrada</td><td>Cuando se compra o ingresa inventario.</td></tr>
+      <tr><td>Salida</td><td>Cuando se consume o retira inventario.</td></tr>
+    </table>
+    <h3>Pasos</h3>
+    <ol>
+      <li>Entre al Kardex desde un ingrediente.</li>
+      <li>Seleccione tipo de movimiento.</li>
+      <li>Ingrese cantidad y costo si corresponde.</li>
+      <li>Guarde el movimiento.</li>
+      <li>Revise saldo final y costo promedio.</li>
+    </ol>
+    <div class="nota-warning">Registre las entradas antes de las salidas para que el saldo y el promedio ponderado sean coherentes.</div>
+  </div>
+
+  <div class="pagina-a4" data-page="12" data-header="Manual de Usuario - Sistema de Costeo">
+    <h2>12. Estado de resultados</h2>
+    <p>El Estado de Resultados resume el costo y precio sugerido de un plato. Es la pantalla clave para tomar decisiones de venta.</p>
+    <table>
+      <tr><th>Concepto</th><th>Que significa</th></tr>
+      <tr><td>MP</td><td>Materia prima usada en la receta.</td></tr>
+      <tr><td>MOD</td><td>Mano de obra directa aplicada al plato.</td></tr>
+      <tr><td>CIF</td><td>Costos indirectos, MOI, depreciacion y tasas.</td></tr>
+      <tr><td>GA/GV/GF</td><td>Gastos administrativos, ventas y financieros.</td></tr>
+      <tr><td>Utilidad</td><td>Margen deseado sobre el costo total.</td></tr>
+      <tr><td>IGV</td><td>Impuesto configurado para el negocio.</td></tr>
+      <tr><td>Precio final</td><td>Precio sugerido al cliente.</td></tr>
+    </table>
+    <h3>Como usarlo</h3>
+    <ol>
+      <li>Seleccione un plato desde Dashboard o Platos.</li>
+      <li>Revise cada bloque de costo.</li>
+      <li>Ajuste el porcentaje de utilidad si necesita simular otro precio.</li>
+      <li>Compare el precio final con el precio de mercado.</li>
+    </ol>
+  </div>
+
+  <div class="pagina-a4" data-page="13" data-header="Manual de Usuario - Sistema de Costeo">
+    <h2>13. Configuracion y usuarios</h2>
+    <h3>Configuracion</h3>
+    <p>Permite definir parametros generales del sistema. Normalmente solo el administrador tiene acceso.</p>
+    <table>
+      <tr><th>Parametro</th><th>Uso</th></tr>
+      <tr><td>Nombre del negocio</td><td>Aparece en reportes y manuales.</td></tr>
+      <tr><td>IGV %</td><td>Se usa en el precio final del Estado de Resultados.</td></tr>
+      <tr><td>Moneda</td><td>Etiqueta monetaria del sistema.</td></tr>
+      <tr><td>Sector</td><td>Permite adaptar etiquetas generales.</td></tr>
+    </table>
+    <h3>Usuarios</h3>
+    <p>El modulo Usuarios permite crear cuentas, asignar roles, activar o desactivar usuarios y resetear contrasenas.</p>
+    <div class="nota-warning">Solo ADMIN debe administrar usuarios. Cambiar un rol modifica lo que esa persona puede ver o editar.</div>
+  </div>
+
+  <div class="pagina-a4" data-page="14" data-header="Manual de Usuario - Sistema de Costeo">
+    <h2>14. Buenas practicas</h2>
+    <h3>Antes de calcular precios</h3>
+    <ul>
+      <li>Revise que cada plato tenga receta completa.</li>
+      <li>Actualice costos de compra de ingredientes.</li>
+      <li>Verifique rendimiento y unidades.</li>
+      <li>Complete proyeccion mensual.</li>
+      <li>Actualice planilla, CIF, activos y gastos.</li>
+    </ul>
+    <h3>Errores frecuentes</h3>
+    <table>
+      <tr><th>Situacion</th><th>Como corregirla</th></tr>
+      <tr><td>El precio sale muy bajo.</td><td>Revise rendimiento, gastos y proyeccion mensual.</td></tr>
+      <tr><td>No aparece boton de editar.</td><td>Su rol probablemente es de lectura.</td></tr>
+      <tr><td>Un plato no muestra costo correcto.</td><td>Revise si tiene receta, tiempos y proyeccion.</td></tr>
+      <tr><td>El Kardex queda negativo.</td><td>Registre entradas antes de salidas o corrija cantidades.</td></tr>
+    </table>
+    <div class="nota-info">Actualice datos al menos una vez por mes o cada vez que cambien precios de insumos, sueldos o servicios.</div>
+  </div>
+
+  <div class="pagina-a4" data-page="15" data-header="Manual de Usuario - Sistema de Costeo">
+    <h2>15. Glosario</h2>
+    <table>
+      <tr><th>Termino</th><th>Significado simple</th></tr>
+      <tr><td>MP</td><td>Materia prima. Ingredientes usados en el plato.</td></tr>
+      <tr><td>MOD</td><td>Mano de obra directa. Trabajo de cocina aplicado al plato.</td></tr>
+      <tr><td>MOI</td><td>Mano de obra indirecta. Personal de apoyo distribuido como CIF.</td></tr>
+      <tr><td>CIF</td><td>Costos indirectos de fabricacion.</td></tr>
+      <tr><td>GA</td><td>Gastos administrativos.</td></tr>
+      <tr><td>GV</td><td>Gastos de ventas.</td></tr>
+      <tr><td>GF</td><td>Gastos financieros.</td></tr>
+      <tr><td>IGV</td><td>Impuesto aplicado al valor de venta.</td></tr>
+      <tr><td>Rendimiento</td><td>Cantidad util despues de considerar merma.</td></tr>
+      <tr><td>Merma</td><td>Perdida por limpieza, coccion, desperdicio o preparacion.</td></tr>
+      <tr><td>Precio final</td><td>Precio sugerido para vender al cliente.</td></tr>
+    </table>
+    <div class="nota-info">Este manual puede imprimirse desde el navegador con Ctrl+P. Cada hoja esta preparada en formato A4.</div>
+  </div>
+</div>
+{% endblock %}
