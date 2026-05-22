@@ -1,6 +1,9 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "buildCommand": "python -m compileall app.py database.py calculos.py",
+  "framework": "flask",
+  "buildCommand": null,
+  "outputDirectory": null,
   "rewrites": [
     {
       "source": "/(.*)",
