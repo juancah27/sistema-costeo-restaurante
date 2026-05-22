@@ -4,7 +4,6 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
-// Si no existe PORT en el entorno, usa el 5173 por defecto en lugar de romper el build
 const rawPort = process.env.PORT || "5173";
 const port = Number(rawPort);
 
@@ -12,7 +11,6 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-// Si no existe BASE_PATH en Vercel, usa la raíz '/' por defecto
 const basePath = process.env.BASE_PATH || "/";
 
 export default defineConfig({
@@ -20,7 +18,8 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    runtimeErrorOverlay(),
+    // SOLUCIÓN: El overlay de errores de Replit ahora solo se activará en desarrollo
+    ...(process.env.NODE_ENV !== "production" ? [runtimeErrorOverlay()] : []),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
@@ -46,7 +45,7 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
-    sourcemap: false, // <-- CAMBIO CLAVE: Esto desactivará los mapas de código para ver el error real
+    sourcemap: false,
   },
   server: {
     port,
